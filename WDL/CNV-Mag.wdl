@@ -6,9 +6,7 @@ workflow CNV_Mag {
         String cnvProfiler_Docker = "us.gcr.io/tag-public/covprofileviz:0.0.4"
         File cramOrBamFile
         File cramOrBamIndexFile
-        File referenceFasta
-        File referenceFastaIndex
-        File referenceDict
+        File genomeBoundaryFile = "gs://fc-325cb421-bf1a-4e99-b50c-3f785d6b994a/genomeBoundries/Homo_sapiens_assembly38.genome"
         File? cnvBedFile
         Array[String]? cnvIntervals
         Boolean heterozygosityCheck = false
@@ -27,7 +25,8 @@ workflow CNV_Mag {
 
     call GetPaddedCnvBed {
         input:
-            cnvBedFile = cnvBedFile
+            cnvBedFile = cnvBedFile,
+            genomeBoundaryFile = genomeBoundaryFile
     }
     call SamtoolsDepth {
         input:
@@ -111,7 +110,7 @@ task CreateBedFromIntervals {
 task GetPaddedCnvBed {
     input {
         File cnvBedFile
-        File genomeBoundaryFile = "gs://broad-dsde-methods-dev/cromwell_monitoring/hg19.genome"
+        File genomeBoundaryFile
         String bedtools_docker = "us.gcr.io/broad-dsde-methods/vcfeval_docker:v1.0"
         Int mem_gb = 4
         Int cpu = 1
