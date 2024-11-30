@@ -170,8 +170,8 @@ task SamtoolsDepth {
 
     >>>
     output {
-        File mapq0_depth_profile = "~{sampleName}_MAPQ0_samtools.depth"
-        File mapq20_depth_profile = "~{sampleName}_MAPQ20_samtools.depth"
+        File mapq0_depth_profile = "output/~{sampleName}_MAPQ0_samtools.depth"
+        File mapq20_depth_profile = "output/~{sampleName}_MAPQ20_samtools.depth"
     }
     runtime {
         memory: mem_gb * 1000 + " MB"
