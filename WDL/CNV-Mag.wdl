@@ -150,10 +150,8 @@ task SamtoolsDepth {
             String samtools_docker = "euformatics/samtools:1.20"
     }
     command <<<
-        # Create directories for input & output
-        mkdir input
+        # Create output directory
         mkdir output
-        readlink -f ~{alignedBam} > input/bam_path.txt
 
         # Run samtools depth to get MAPQ20 depth
         # Counting fragments instead of reads using -s option
@@ -167,7 +165,8 @@ task SamtoolsDepth {
             ~{alignedBam} \
             ~{HG1bam} \
             ~{HG2bam} \
-            -o output/~{sampleName}_MAPQ${mq}_samtools.depth
+            -o output/~{sampleName}_MAPQ${mq}_samtools.depth;
+        done
 
     >>>
     output {
