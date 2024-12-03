@@ -8,6 +8,9 @@ WORKDIR /BaseImage
 # Install bedtools
 RUN conda install -y -c bioconda bioconda/label/main::bedtools && conda clean --all
 
+# Install samtools
+RUN conda install -y -c bioconda  bioconda/label/main::samtools && conda clean --all
+
 # Install gcloud CLI
 # This a copy and paste from Galuoises' answer in stackoverflow
 # Reference: https://stackoverflow.com/questions/28372328/how-to-install-the-google-cloud-sdk-in-a-docker-image

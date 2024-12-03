@@ -36,7 +36,8 @@ workflow CNV_Mag {
             dragenVersion = dragenVersion,
             alignedBam = cramOrBamFile,
             alignedBai = cramOrBamIndexFile,
-            target_bed = GetPaddedCnvBed.paddedCnvBed
+            target_bed = GetPaddedCnvBed.paddedCnvBed,
+            dockerImage = dockerImage
 
     }
     call MagDepth {
@@ -166,7 +167,7 @@ task SamtoolsDepth {
             Int cpu = 8
             Int disk_size_gb = 500
             Boolean use_ssd = true
-            String samtools_docker = "euformatics/samtools:1.20"
+            String dockerImage
     }
     command <<<
         # Create output directory
@@ -220,7 +221,7 @@ task SamtoolsDepth {
     runtime {
         memory: mem_gb * 1000 + " MB"
         cpu: cpu
-        docker: samtools_docker
+        docker: dockerImage
         disks: "local-disk " + disk_size_gb + if use_ssd then " SSD" else " HDD"
         preemptible: 0
         maxRetries: 3
