@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import matplotlib.ticker as ticker
 import logging
+import sys
 import argparse
 
 argparser = argparse.ArgumentParser(description='MagSNP: Visualize PASS SNP AF distribution within the target intervals')

@@ -130,12 +130,12 @@ task GetPaddedCnvBed {
     }
 
     command <<<
-        if ~{refGenome} == "hg19" then
+        if [[ ~{refGenome} == "hg19" ]]; then
             genomeBoundaryFile="/BaseImage/MagRef/Homo_sapiens_assembly19.genome"
-        elif ~{refGenome} == "hg38" then
+        elif [[ ~{refGenome} == "hg38" ]]; then
             genomeBoundaryFile="/BaseImage/MagRef/Homo_sapiens_assembly38.genome"
         else
-            echo "Reference genome ~{refGenome} not supported"
+            echo "Reference genome $refGenome not supported"
             exit 1
         fi
 
