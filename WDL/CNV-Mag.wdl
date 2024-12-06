@@ -29,13 +29,13 @@ workflow CNV_Mag {
             refGenome = refGenome,
             dockerImage = dockerImage
     }
+
     call SamtoolsDepth {
         input:
             sampleName = sampleName,
             alignedBam = cramOrBamFile,
             alignedBai = cramOrBamIndexFile,
-            target_bed = GetPaddedCnvBed.paddedCnvBed,
-            dockerImage = dockerImage
+            target_bed = GetPaddedCnvBed.paddedCnvBed
     }
     call MagDepth {
         input:
