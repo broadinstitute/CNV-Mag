@@ -32,13 +32,10 @@ workflow CNV_Mag {
     call SamtoolsDepth {
         input:
             sampleName = sampleName,
-            refGenome = refGenome,
-            dragenVersion = dragenVersion,
             alignedBam = cramOrBamFile,
             alignedBai = cramOrBamIndexFile,
             target_bed = GetPaddedCnvBed.paddedCnvBed,
             dockerImage = dockerImage
-
     }
     call MagDepth {
         input:
@@ -161,42 +158,19 @@ task SamtoolsDepth {
             File alignedBam
             File alignedBai
             File target_bed
-            String refGenome
-            String dragenVersion
+            File HG001Bam = "gs://fc-53dbc2d8-6521-4177-b338-f3b30ae75756/submissions/813880f1-7ac0-4190-a505-a4aaa80955a9/CNV_Profiler/b3071880-267b-4f5e-89c7-6acf7f5bbaae/call-CramToBam/HG001.bam"
+            File HG001Bai = "gs://fc-53dbc2d8-6521-4177-b338-f3b30ae75756/submissions/813880f1-7ac0-4190-a505-a4aaa80955a9/CNV_Profiler/b3071880-267b-4f5e-89c7-6acf7f5bbaae/call-CramToBam/HG001.bai"
+            File HG002Bam = "gs://fc-53dbc2d8-6521-4177-b338-f3b30ae75756/submissions/cb95c8e0-3d8b-4e0d-b5d1-71906277fa47/CNV_Profiler/5780e9cd-6979-42d4-8929-77439937bdc1/call-CramToBam/HG002.bam"
+            File HG002Bai = "gs://fc-53dbc2d8-6521-4177-b338-f3b30ae75756/submissions/cb95c8e0-3d8b-4e0d-b5d1-71906277fa47/CNV_Profiler/5780e9cd-6979-42d4-8929-77439937bdc1/call-CramToBam/HG002.bai"
             Int mem_gb = 64
             Int cpu = 8
             Int disk_size_gb = 500
             Boolean use_ssd = true
-            String dockerImage
+            String samtoolsDocker = "euformatics/samtools:1.20"
     }
     command <<<
         # Create output directory
         mkdir output
-
-        # Define paths to be localized based on reference genome and DRAGEN version
-        if [[ "~{refGenome}" == "hg38" && "~{dragenVersion}" == "v4.3.6" ]]; then
-            HG1bam_gs="gs://fc-53dbc2d8-6521-4177-b338-f3b30ae75756/submissions/813880f1-7ac0-4190-a505-a4aaa80955a9/CNV_Profiler/b3071880-267b-4f5e-89c7-6acf7f5bbaae/call-CramToBam/HG001.bam"
-            HG1bai_gs="gs://fc-53dbc2d8-6521-4177-b338-f3b30ae75756/submissions/813880f1-7ac0-4190-a505-a4aaa80955a9/CNV_Profiler/b3071880-267b-4f5e-89c7-6acf7f5bbaae/call-CramToBam/HG001.bai"
-            HG2bam_gs="gs://fc-53dbc2d8-6521-4177-b338-f3b30ae75756/submissions/cb95c8e0-3d8b-4e0d-b5d1-71906277fa47/CNV_Profiler/5780e9cd-6979-42d4-8929-77439937bdc1/call-CramToBam/HG002.bam"
-            HG2bai_gs="gs://fc-53dbc2d8-6521-4177-b338-f3b30ae75756/submissions/cb95c8e0-3d8b-4e0d-b5d1-71906277fa47/CNV_Profiler/5780e9cd-6979-42d4-8929-77439937bdc1/call-CramToBam/HG002.bai"
-        elif [[ "~{refGenome}" == "hg19" && "~{dragenVersion}" == "v3.10.4" ]]; then
-            HG1bam_gs="	gs://fc-325cb421-bf1a-4e99-b50c-3f785d6b994a/submissions/be005afb-1d13-4bd0-877c-4d08d942bd1d/CNV_Profiler/4e30dbd9-925c-4434-a370-628f7cd6550f/call-CramToBam/HG001.bam"
-            HG1bai_gs="gs://fc-325cb421-bf1a-4e99-b50c-3f785d6b994a/submissions/be005afb-1d13-4bd0-877c-4d08d942bd1d/CNV_Profiler/4e30dbd9-925c-4434-a370-628f7cd6550f/call-CramToBam/HG001.bai"
-            HG2bam_gs="	gs://fc-325cb421-bf1a-4e99-b50c-3f785d6b994a/submissions/cef26e18-fdad-431b-b897-7a83e5d75128/CNV_Profiler/3ed3039d-85c9-4148-863e-43a757079500/call-CramToBam/HG002.bam"
-            HG2bai_gs="	gs://fc-325cb421-bf1a-4e99-b50c-3f785d6b994a/submissions/cef26e18-fdad-431b-b897-7a83e5d75128/CNV_Profiler/3ed3039d-85c9-4148-863e-43a757079500/call-CramToBam/HG002.bai"
-        else
-            echo "Error: Unsupported refGenome or dragenVersion" >&2
-            exit 1
-        fi
-
-        # Localize files using gsutil
-        echo "Localizing HG1 BAM/BAI..."
-        gcloud storage cp "$HG1bam_gs" ./HG1.bam
-        gcloud storage cp "$HG1bai_gs" ./HG1.bam.bai
-
-        echo "Localizing HG2 BAM/BAI..."
-        gcloud storage cp "$HG2bam_gs" ./HG2.bam
-        gcloud storage cp "$HG2bai_gs" ./HG2.bam.bai
 
         # Run samtools depth to get MAPQ20 depth & MAPQ0 depth
         # Counting fragments instead of reads using -s option
@@ -208,8 +182,8 @@ task SamtoolsDepth {
             --min-MQ ${mq} \
             -s \
             ~{alignedBam} \
-            ./HG1.bam \
-            ./HG2.bam \
+            ~{HG001Bam} \
+            ~{HG002Bam} \
             -o output/~{sampleName}_MAPQ${mq}_samtools.depth;
         done
 
@@ -221,7 +195,7 @@ task SamtoolsDepth {
     runtime {
         memory: mem_gb * 1000 + " MB"
         cpu: cpu
-        docker: dockerImage
+        docker: samtoolsDocker
         disks: "local-disk " + disk_size_gb + if use_ssd then " SSD" else " HDD"
         preemptible: 0
         maxRetries: 3

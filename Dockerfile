@@ -2,14 +2,8 @@
 FROM continuumio/miniconda3
 LABEL org.opencontainers.image.authors="gaoyueya@broadinstitute.org"
 
-# Specify Workdir
-WORKDIR /BaseImage
-
 # Install bedtools
 RUN conda install -y -c bioconda bioconda/label/main::bedtools && conda clean --all
-
-# Install samtools
-RUN conda install -y -c bioconda  bioconda/label/main::samtools && conda clean --all
 
 # Install gcloud CLI
 # This a copy and paste from Galuoises' answer in stackoverflow
@@ -25,6 +19,8 @@ RUN apt-get update && \
 COPY Mag_env.yml .
 RUN conda env create -f Mag_env.yml
 
+# Specify Workdir
+WORKDIR /BaseImage
 
 # Copy the Cov Viz scripts to the container
 RUN mkdir /BaseImage/CNV-Mag
