@@ -13,7 +13,21 @@ The soft-clip information is not included in the current version of CNV-Mag. I a
 release it in the future.
 
 ## Workflow
-![image](misc/CNV-Mag TubeMap.png)
+CNV-Mag is a simple and direct tool to visualize CNV events in WGS data. It is taking use of BAM and short variant VCF files to visualize CNV events in WGS data. The workflow is shown below:
+Input:
+- BAM file and BAM index file
+  - Aligned BAM file of your sample
+  - HG001 BAM file preferred using the same pipeline as above
+  - HG002 BAM file preferred using the same pipeline as above
+- Short variant VCF file
+    - Short variant VCF file of your sample
+    - HG001 VCF file preferred using the same pipeline as above
+    - HG002 VCF file preferred using the same pipeline as above
+- CNV region (Bed or a list of Strings)
+  - Can be a single CNV region or multiple CNV regions
+- Reference genome (hg19 or hg38)
+
+![image](misc/CNV-MagTubeMap.png)
 There are two main workflows in CNV-Mag:
 - Mag-SNP
   - Visualize all the PASS SNP AF of the CNV region.
