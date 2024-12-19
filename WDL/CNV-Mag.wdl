@@ -7,7 +7,6 @@ workflow CNV_Mag {
         File cramOrBamFile
         File cramOrBamIndexFile
         String refGenome = "hg38"
-        String dragenVersion = "v4.3.6"
         File? cnvBedFile
         Array[String]? cnvIntervals
         File hardFilteredVcfFile
@@ -53,9 +52,7 @@ workflow CNV_Mag {
             sampleName = sampleName,
             hardFilteredVcfFile = hardFilteredVcfFile,
             cnvBedFile = cnvBedFile,
-            dockerImage = dockerImage,
-            refGenome = refGenome,
-            dragenVersion = dragenVersion
+            dockerImage = dockerImage
     }
 
     output {
@@ -92,7 +89,7 @@ task CreateBedFromIntervals {
         python3 <<CODE
 
         with open('cnv_intervals.txt', 'r') as f:
-                cnvIntervals = f.readlines()
+                cnvIntervals = [line.strip() for line in f if line.strip()]
 
         with open('cnv_intervals.bed', 'a') as f:
             for i, interval in enumerate(cnvIntervals):
@@ -251,9 +248,9 @@ task MagSNP{
     input {
         String sampleName
         String dockerImage
-        String refGenome
-        String dragenVersion
         File hardFilteredVcfFile
+        File HG001FilteredVcfFile = "gs://fc-a76d0374-93e7-4c1a-8302-2a88079b480d/DRAGEN_4.3.6_NIST_default/NA12878_HG001_1000ng_3_NVX/NA12878_HG001_1000ng_3_NVX.hard-filtered.vcf.gz"
+        File HG002FilteredVcfFile = "gs://fc-a76d0374-93e7-4c1a-8302-2a88079b480d/DRAGEN_4.3.6_NIST_default/NA24385_HG002_1_NVX/NA24385_HG002_1_NVX.hard-filtered.vcf.gz"
         File cnvBedFile
         Int mem_gb = 64
         Int cpu = 8
@@ -266,32 +263,13 @@ task MagSNP{
         set -e
         mkdir output
 
-        # Define paths to be localized based on reference genome and DRAGEN version
-        if [[ "~{refGenome}" == "hg38" && "~{dragenVersion}" == "v4.3.6" ]]; then
-            HG1vcf_gs="gs://fc-a76d0374-93e7-4c1a-8302-2a88079b480d/DRAGEN_4.3.6_NIST_default/NA12878_HG001_1000ng_3_NVX/NA12878_HG001_1000ng_3_NVX.hard-filtered.vcf.gz"
-            HG2vcf_gs="gs://fc-a76d0374-93e7-4c1a-8302-2a88079b480d/DRAGEN_4.3.6_NIST_default/NA24385_HG002_1_NVX/NA24385_HG002_1_NVX.hard-filtered.vcf.gz"
-        elif [[ "~{refGenome}" == "hg19" && "~{dragenVersion}" == "v3.10.4" ]]; then
-            HG1vcf_gs="gs://fc-325cb421-bf1a-4e99-b50c-3f785d6b994a/DRAGEN_v3_10_4_hg19/NA12878.hard-filtered.vcf.gz"
-            HG2vcf_gs="gs://fc-325cb421-bf1a-4e99-b50c-3f785d6b994a/DRAGEN_v3_10_4_hg19/NA24385.hard-filtered.vcf.gz"
-        else
-            echo "Error: Unsupported refGenome or dragenVersion" >&2
-            exit 1
-        fi
-
-        # Localize files using gsutil
-        echo "Localizing HG1 VCF..."
-        gcloud storage cp "$HG1vcf_gs" ./HG1.vcf.gz
-
-        echo "Localizing HG2 VCF..."
-        gcloud storage cp "$HG2vcf_gs" ./HG2.vcf.gz
-
         # Run the coverage profile visualization script
         conda run --no-capture-output \
         -n CNV-Mag \
         python3 /BaseImage/CNV-Mag/MagSNP.py \
         -v1 ~{hardFilteredVcfFile} \
-        -v2 ./HG1.vcf.gz \
-        -v3 ./HG2.vcf.gz \
+        -v2 ~{HG001FilteredVcfFile} \
+        -v3 ~{HG002FilteredVcfFile} \
         -b ~{cnvBedFile} \
         -n1 ~{sampleName} \
         -n2 HG001 \

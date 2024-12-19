@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.ticker as mticker
+import matplotlib.ticker as ticker
 from matplotlib.lines import Line2D
 import matplotlib.patches as patches
 import seaborn as sns
@@ -62,9 +62,10 @@ with open(chrom_size_path,'r') as f:
 
 centromere_df = pd.read_csv(filepath_or_buffer=centromere_bed_path, sep='\t', names=['chr', 'start', 'end','name'])
 
-
-def custom_formatter(chr, x, pos):
-    return f'{chr}:{x:,.0f}'
+# This function makes the x axis a little hard to read when
+# intervals have bigger numbers
+# def custom_formatter(chr, x, pos):
+#     return f'{chr}:{x:,.0f}'
 
 
 def get_smoothed_depth(interval_depth:pd.DataFrame, bin_size=5000):
@@ -152,9 +153,8 @@ def plot_cnv_depth(mapq20_depth_path, mapq0_depth_path, target_intervals, padded
             sns.lineplot(x='pos', y='cov', data=smoothed_mq0_depth_cov_df, color='silver', ax=axs[plot_index], linewidth=1.5, alpha=0.7)
             sns.lineplot(x='pos', y='cov', data=smoothed_mq20_depth_cov_df, color='black', ax=axs[plot_index], linewidth=1.5)
 
-
-
-            axs[plot_index].xaxis.set_major_formatter(mticker.FuncFormatter(lambda x, pos: custom_formatter(interval_chr, x, pos)))
+            # Set plot limits and labels
+            axs[plot_index].xaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: '{:,.0f}'.format(x)))
             axs[plot_index].set_ylim(0, cov_y_uplimit)
             axs[plot_index].set_xlim(padded_interval_pos-padded_size*0.05, padded_interval_end+padded_size*0.05)
             axs[plot_index].set_ylabel('Read Depth', fontsize=14)
