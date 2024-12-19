@@ -3,12 +3,7 @@ A tool to visualize CNV Events in WGS Data. CNV-Mag is taking use of BAM and sho
 This tool is part of the Broad Clinical Labs’s CNV reporting workflow.
 
 ## Background
-Verify if a CNV event is real or not is a challenging task. Loading aligned BAM file and VCF into IGV and check 
-the read depth, soft clip, and SNP Allele Fraction (AF) is a common way to verify CNV events. However, it 
-is not easy to check the read depth in IGV, especially when the breakpoint is not accurate and even an 
-experienced Bioinformatician may make mistakes. CNV-Mag is designed to help you to visualize CNV events in a
-simple and direct way. It will show you the read depth, and SNP AF of the CNV region in a single figure.
-
+Verifying whether a CNV event is real or not is a challenging task. A common approach involves loading aligned BAM files and VCFs into IGV to inspect read depth, soft clips, and SNP Allele Fraction (AF). However, visualizing read depth in IGV can be difficult, especially when breakpoints are not precisely defined. While checking SNP AF is a valuable method for confirming CNV events, it becomes impractical for multi-megabase events, as only a few SNPs can be examined. Relying on a limited number of SNP pileups often misses critical AF patterns, leading to incomplete evidence. The challenge intensifies when the CNV event occurs in a repetitive region. CNV-Mag is designed to address these issues by providing a simple and direct way to visualize CNV events. It displays both read depth and SNP AF for the CNV region in a single, comprehensive figure, enhancing the clarity and accuracy of your analysis.
 The soft-clip information is not included in the current version of CNV-Mag. I am working on it and will
 release it in the future.
 
