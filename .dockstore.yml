@@ -1,0 +1,18 @@
+version: 1.2
+workflows:
+   - name: CNV-Mag
+     subclass: WDL
+     primaryDescriptorPath: /WDL/CNV-Mag.wdl
+     testParameterFiles:
+     -  /WDL/CNV-Mag.inputs.json
+     readMePath: /README.md
+     authors:
+       - name: Yueyao Gao
+         email: gaoyueya@broadinstitute.org
+         role: Developer
+         affiliation: Broad Institute
+         orcid: 0000-0002-7607-2938
+
+
+
+
