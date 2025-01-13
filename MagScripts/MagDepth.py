@@ -108,8 +108,6 @@ def get_binned_histogram(interval_depth:pd.DataFrame, bin_size=5000, depth_bins=
 # Define the function to get CNV depth profile
 def plot_cnv_depth(mapq20_depth_path, mapq0_depth_path, target_intervals, padded_intervals):
     sample_name = mapq0_depth_path.split("/")[-1].split("_")[0]
-    mapq0_proband_depths = pd.read_csv(mapq0_depth_path, sep="\t", usecols=[0, 1, 2], names=["contig", "pos", "proband"])['proband'].tolist()
-    cov_y_uplimit = np.percentile(mapq0_proband_depths, q=99)*1.5
     sample_names = [sample_name, "HG001", "HG002"]
     for index, interval in enumerate(target_intervals):
         # Get interval start and end
@@ -133,6 +131,13 @@ def plot_cnv_depth(mapq20_depth_path, mapq0_depth_path, target_intervals, padded
         # Sanity check
         if interval_chr != padded_interval_chr:
             raise Exception(f"Interval chromosome mismatch: {interval_chr} != {padded_interval_chr}")
+
+        # Make the y-axis lim consistent across all samples
+        proband_mq20_depth_df = pd.read_csv(mapq20_depth_path, sep="\t", usecols=[0, 1, 2], names=["contig", "pos", "cov"])
+        proband_interval_mq20_depth_cov_df = proband_mq20_depth_df[(proband_mq20_depth_df['contig'].astype(str) == str(interval_chr)) & (
+                    proband_mq20_depth_df['pos'] >= padded_interval_pos) & (proband_mq20_depth_df['pos'] <= padded_interval_end)]
+        cov_y_uplimit = np.percentile(proband_interval_mq20_depth_cov_df['cov'], q=99) * 1.5
+
         # For each interval, Create a depth plot for proband, HG001, and HG002
         fig, axs = plt.subplots(nrows=4, ncols=1, figsize=(15, 8), height_ratios=[1, 1, 1, 0.1])
         for i in range(2, 5):
@@ -166,8 +171,8 @@ def plot_cnv_depth(mapq20_depth_path, mapq0_depth_path, target_intervals, padded
 
             # Create custom legend handles
             legend_handles = [
-                Line2D(xdata=[0], ydata=[0], color='black', lw=1.5, label=f'MQ20 Depth'),
-                Line2D(xdata=[0], ydata=[0], color='silver', lw=1.5, label=f'MQ0 Depth'),
+                Line2D(xdata=[0], ydata=[0], color='black', lw=1.5, label=f'MQ>=20 Depth'),
+                Line2D(xdata=[0], ydata=[0], color='silver', lw=1.5, label=f'MQ>=0 Depth'),
                 axs[plot_index].fill_betweenx(y=[0, cov_y_uplimit], x1=interval_pos, x2=interval_end, color='yellow', alpha=0.2, label='Target Interval')
             ]
             axs[plot_index].legend(handles=legend_handles, bbox_to_anchor=(1.01, 0.5), loc='center left', fontsize=12)

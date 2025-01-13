@@ -3,7 +3,7 @@ version 1.0
 workflow CNV_Mag {
     input{
         String sampleName
-        String dockerImage = "us.gcr.io/tag-public/cnv-mag:v0"
+        String dockerImage = "us.gcr.io/tag-public/cnv-mag:v0.1"
         File cramOrBamFile
         File cramOrBamIndexFile
         String refGenome = "hg38"
@@ -155,10 +155,10 @@ task SamtoolsDepth {
             File alignedBam
             File alignedBai
             File target_bed
-            File HG001Bam = "gs://fc-53dbc2d8-6521-4177-b338-f3b30ae75756/submissions/813880f1-7ac0-4190-a505-a4aaa80955a9/CNV_Profiler/b3071880-267b-4f5e-89c7-6acf7f5bbaae/call-CramToBam/HG001.bam"
-            File HG001Bai = "gs://fc-53dbc2d8-6521-4177-b338-f3b30ae75756/submissions/813880f1-7ac0-4190-a505-a4aaa80955a9/CNV_Profiler/b3071880-267b-4f5e-89c7-6acf7f5bbaae/call-CramToBam/HG001.bai"
-            File HG002Bam = "gs://fc-53dbc2d8-6521-4177-b338-f3b30ae75756/submissions/cb95c8e0-3d8b-4e0d-b5d1-71906277fa47/CNV_Profiler/5780e9cd-6979-42d4-8929-77439937bdc1/call-CramToBam/HG002.bam"
-            File HG002Bai = "gs://fc-53dbc2d8-6521-4177-b338-f3b30ae75756/submissions/cb95c8e0-3d8b-4e0d-b5d1-71906277fa47/CNV_Profiler/5780e9cd-6979-42d4-8929-77439937bdc1/call-CramToBam/HG002.bai"
+            File HG001Bam = "gs://fc-a76d0374-93e7-4c1a-8302-2a88079b480d/DRAGEN_4.3.6_CNV_Mag_resource/HG001.bam"
+            File HG001Bai = "gs://fc-a76d0374-93e7-4c1a-8302-2a88079b480d/DRAGEN_4.3.6_CNV_Mag_resource/HG001.bai"
+            File HG002Bam = "gs://fc-a76d0374-93e7-4c1a-8302-2a88079b480d/DRAGEN_4.3.6_CNV_Mag_resource/HG002.bam"
+            File HG002Bai = "gs://fc-a76d0374-93e7-4c1a-8302-2a88079b480d/DRAGEN_4.3.6_CNV_Mag_resource/HG002.bai"
             Int mem_gb = 64
             Int cpu = 8
             Int disk_size_gb = 500
