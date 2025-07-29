@@ -119,6 +119,7 @@ task GetPaddedCnvBed {
         File cnvBedFile
         String refGenome
         String dockerImage
+        Int padpct = 2 # Percentage to pad the CNV regions
         Int mem_gb = 4
         Int cpu = 1
         Int disk_size_gb = 10
@@ -136,7 +137,7 @@ task GetPaddedCnvBed {
 
         # Create a padded CNV bed file
         # Extend the CNV regions by 200% of the interval size on each side
-        bedtools slop -i ~{cnvBedFile} -g ${genomeBoundaryFile} -b 2 -pct > padded_cnv.bed
+        bedtools slop -i ~{cnvBedFile} -g ${genomeBoundaryFile} -b ~{padpct} -pct > padded_cnv.bed
     >>>
     runtime {
         docker: dockerImage
