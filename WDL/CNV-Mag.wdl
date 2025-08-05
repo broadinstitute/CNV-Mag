@@ -119,6 +119,7 @@ task GetPaddedCnvBed {
         File cnvBedFile
         String refGenome
         String dockerImage
+        Int padpct = 2 # Percentage to pad the CNV regions
         Int mem_gb = 4
         Int cpu = 1
         Int disk_size_gb = 10
@@ -136,7 +137,7 @@ task GetPaddedCnvBed {
 
         # Create a padded CNV bed file
         # Extend the CNV regions by 200% of the interval size on each side
-        bedtools slop -i ~{cnvBedFile} -g ${genomeBoundaryFile} -b 2 -pct > padded_cnv.bed
+        bedtools slop -i ~{cnvBedFile} -g ${genomeBoundaryFile} -b ~{padpct} -pct > padded_cnv.bed
     >>>
     runtime {
         docker: dockerImage
@@ -159,6 +160,7 @@ task SamtoolsDepth {
             File HG001Bai = "gs://fc-a76d0374-93e7-4c1a-8302-2a88079b480d/DRAGEN_4.3.6_CNV_Mag_resource/HG001.bai"
             File HG002Bam = "gs://fc-a76d0374-93e7-4c1a-8302-2a88079b480d/DRAGEN_4.3.6_CNV_Mag_resource/HG002.bam"
             File HG002Bai = "gs://fc-a76d0374-93e7-4c1a-8302-2a88079b480d/DRAGEN_4.3.6_CNV_Mag_resource/HG002.bai"
+            Int minBQ = 20
             Int mem_gb = 64
             Int cpu = 8
             Int disk_size_gb = 500
@@ -175,7 +177,7 @@ task SamtoolsDepth {
             samtools depth \
             -@ ~{cpu} \
             -b ~{target_bed} \
-            --min-BQ 20 \
+            --min-BQ ~{minBQ} \
             --min-MQ ${mq} \
             -s \
             ~{alignedBam} \
