@@ -171,11 +171,11 @@ task SamtoolsDepth {
         # Create output directory
         mkdir output
 
-        declare -A BAMS=([CASE]=~{alignedBam} [HG001]=~{HG001Bam} [HG002]=~{HG002Bam})
-
-        for sample in "${!BAMS[@]}"; do
-            PATH="${BAMS[$sample]}"
-            samtools view -@ ~{cpu} -h ${PATH} --region-file ~{target_bed} -b -o ${sample}_aligned_region.bam
+        for bam in case:~{alignedBam} HG001:~{HG001Bam} HG002:~{HG002Bam}; do
+            sample=${bam%%:*}
+            path=${bam#*:}
+            samtools view -@ ~{cpu} -h -b --region-file ~{target_bed} ${path} -o ${sample}_aligned_region.bam
+            samtools index -@ ~{cpu} ${sample}_aligned_region.bam
         done
 
         # Run samtools depth to get MAPQ20 depth & MAPQ0 depth
