@@ -171,6 +171,13 @@ task SamtoolsDepth {
         # Create output directory
         mkdir output
 
+        for bam in case:~{alignedBam} HG001:~{HG001Bam} HG002:~{HG002Bam}; do
+            sample=${bam%%:*}
+            path=${bam#*:}
+            samtools view -@ ~{cpu} -h -b --region-file ~{target_bed} ${path} -o ${sample}_aligned_region.bam
+            samtools index -@ ~{cpu} ${sample}_aligned_region.bam
+        done
+
         # Run samtools depth to get MAPQ20 depth & MAPQ0 depth
         # Counting fragments instead of reads using -s option
         for mq in 0 20; do
@@ -180,9 +187,9 @@ task SamtoolsDepth {
             --min-BQ ~{minBQ} \
             --min-MQ ${mq} \
             -s \
-            ~{alignedBam} \
-            ~{HG001Bam} \
-            ~{HG002Bam} \
+            case_aligned_region.bam \
+            HG001_aligned_region.bam \
+            HG002_aligned_region.bam \
             -o output/~{sampleName}_MAPQ${mq}_samtools.depth;
         done
 
