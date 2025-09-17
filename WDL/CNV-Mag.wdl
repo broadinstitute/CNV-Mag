@@ -171,10 +171,14 @@ task SamtoolsDepth {
         # Create output directory
         mkdir output
 
+        # Move the BAM and BAI files to the same directory to avoid index issues
+        mv ~{alignedBai} $(dirname ~{alignedBam})
+        mv ~{HG001Bai} $(dirname ~{HG001Bam})
+        mv ~{HG002Bai} $(dirname ~{HG002Bam})
+
         for bam in case:~{alignedBam} HG001:~{HG001Bam} HG002:~{HG002Bam}; do
             sample=${bam%%:*}
             path=${bam#*:}
-            samtools index -@ ~{cpu} ${path} ${path}.bai
             samtools view -@ ~{cpu} -h -b --region-file ~{target_bed} ${path} -o ${sample}_aligned_region.bam
             samtools index -@ ~{cpu} ${sample}_aligned_region.bam
         done
