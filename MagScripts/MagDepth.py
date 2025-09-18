@@ -80,6 +80,7 @@ def get_smoothed_depth(interval_depth:pd.DataFrame, bin_size=5000):
     return smoothed_cov_df
 
 def get_binned_histogram(interval_depth:pd.DataFrame, bin_size=5000, depth_bins=30):
+    cov_thresh = np.percentile(interval_depth['cov'], q=99)
     # Create an empty list to hold binned data
     binned_data = []
     # Bin the data into bins of size bin_size, then sub-bin the data into depth_bins
@@ -102,6 +103,8 @@ def get_binned_histogram(interval_depth:pd.DataFrame, bin_size=5000, depth_bins=
                 binned_data.append((mean_pos, mean_cov))
     # Convert the binned data into a DataFrame
     binned_df = pd.DataFrame(binned_data, columns=['pos', 'cov'])
+    # Cap the coverage values at the 99th percentile to avoid extreme outliers
+    binned_df = binned_df[binned_df['cov'] <= cov_thresh]
     return binned_df
 
 

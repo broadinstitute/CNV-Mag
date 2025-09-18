@@ -154,12 +154,9 @@ task SamtoolsDepth {
         input {
             String sampleName
             File alignedBam
-            File alignedBai
             File target_bed
             File HG001Bam = "gs://fc-a76d0374-93e7-4c1a-8302-2a88079b480d/DRAGEN_4.3.6_CNV_Mag_resource/HG001.bam"
-            File HG001Bai = "gs://fc-a76d0374-93e7-4c1a-8302-2a88079b480d/DRAGEN_4.3.6_CNV_Mag_resource/HG001.bai"
             File HG002Bam = "gs://fc-a76d0374-93e7-4c1a-8302-2a88079b480d/DRAGEN_4.3.6_CNV_Mag_resource/HG002.bam"
-            File HG002Bai = "gs://fc-a76d0374-93e7-4c1a-8302-2a88079b480d/DRAGEN_4.3.6_CNV_Mag_resource/HG002.bai"
             Int minBQ = 20
             Int mem_gb = 64
             Int cpu = 8
@@ -168,19 +165,17 @@ task SamtoolsDepth {
             String samtoolsDocker = "euformatics/samtools:1.20"
     }
     command <<<
-        # Create output directory
-        mkdir output
-
-        # Move the BAM and BAI files to the same directory to avoid index issues
-        mv ~{alignedBai} $(dirname ~{alignedBam})
-        mv ~{HG001Bai} $(dirname ~{HG001Bam})
-        mv ~{HG002Bai} $(dirname ~{HG002Bam})
+        # Create input & output directory
+        mkdir input output
 
         for bam in case:~{alignedBam} HG001:~{HG001Bam} HG002:~{HG002Bam}; do
-            sample=${bam%%:*}
-            path=${bam#*:}
-            samtools view -@ ~{cpu} -h -b --region-file ~{target_bed} ${path} -o ${sample}_aligned_region.bam
-            samtools index -@ ~{cpu} ${sample}_aligned_region.bam
+            SAMPLE=${bam%%:*}
+            PATH=${bam#*:}
+            mv $path input
+            READS=input/$(basename $PATH)
+            samtools index -@ ~{cpu} $READS
+            samtools view -@ ~{cpu} -h -b --region-file ~{target_bed} ${READS} -o ${SAMPLE}_aligned_region.bam
+            samtools index -@ ~{cpu} ${SAMPLE}_aligned_region.bam
         done
 
         # Run samtools depth to get MAPQ20 depth & MAPQ0 depth
@@ -202,6 +197,12 @@ task SamtoolsDepth {
     output {
         File mapq0_depth_profile = "output/~{sampleName}_MAPQ0_samtools.depth"
         File mapq20_depth_profile = "output/~{sampleName}_MAPQ20_samtools.depth"
+        File subset_case_bam = "case_aligned_region.bam"
+        File subset_case_bai = "case_aligned_region.bam.bai"
+        File subset_HG001_bam = "HG001_aligned_region.bam"
+        File subset_HG001_bai = "HG001_aligned_region.bam.bai"
+        File subset_HG002_bam = "HG002_aligned_region.bam"
+        File subset_HG002_bai = "HG002_aligned_region.bam.bai"
     }
     runtime {
         memory: mem_gb * 1000 + " MB"
