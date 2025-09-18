@@ -169,7 +169,7 @@ task SamtoolsDepth {
         for bam in case:~{alignedBam} HG001:~{HG001Bam} HG002:~{HG002Bam}; do
             SAMPLE=${bam%%:*}
             PATH=${bam#*:}
-            mv $path input
+            mv $PATH input
             READS=input/$(basename $PATH)
             samtools index -@ ~{cpu} $READS
             samtools view -@ ~{cpu} -h -b --region-file ~{target_bed} ${READS} -o ${SAMPLE}_aligned_region.bam
