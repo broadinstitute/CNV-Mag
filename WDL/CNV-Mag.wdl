@@ -5,7 +5,6 @@ workflow CNV_Mag {
         String sampleName
         String dockerImage = "us.gcr.io/tag-public/cnv-mag:v0.1"
         File cramOrBamFile
-        File cramOrBamIndexFile
         String refGenome = "hg38"
         File? cnvBedFile
         Array[String]? cnvIntervals
@@ -33,7 +32,6 @@ workflow CNV_Mag {
         input:
             sampleName = sampleName,
             alignedBam = cramOrBamFile,
-            alignedBai = cramOrBamIndexFile,
             target_bed = GetPaddedCnvBed.paddedCnvBed
     }
     call MagDepth {
