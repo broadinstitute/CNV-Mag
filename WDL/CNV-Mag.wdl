@@ -5,6 +5,7 @@ workflow CNV_Mag {
         String sampleName
         String dockerImage = "us.gcr.io/tag-public/cnv-mag:v0.1"
         File cramOrBamFile
+        File cramOrBamIndexFile
         String refGenome = "hg38"
         File? cnvBedFile
         Array[String]? cnvIntervals
@@ -32,6 +33,8 @@ workflow CNV_Mag {
         input:
             sampleName = sampleName,
             alignedBam = cramOrBamFile,
+            alignedBai = cramOrBamIndexFile,
+            alignedBamIndex = cramOrBamIndexFile,
             target_bed = GetPaddedCnvBed.paddedCnvBed
     }
     call MagDepth {
@@ -152,9 +155,13 @@ task SamtoolsDepth {
         input {
             String sampleName
             File alignedBam
+            File alignedBai
+            File aligned
             File target_bed
             File HG001Bam = "gs://fc-a76d0374-93e7-4c1a-8302-2a88079b480d/DRAGEN_4.3.6_CNV_Mag_resource/HG001.bam"
+            File HG001Bai = "gs://fc-a76d0374-93e7-4c1a-8302-2a88079b480d/DRAGEN_4.3.6_CNV_Mag_resource/HG001.bai"
             File HG002Bam = "gs://fc-a76d0374-93e7-4c1a-8302-2a88079b480d/DRAGEN_4.3.6_CNV_Mag_resource/HG002.bam"
+            File HG002Bai = "gs://fc-a76d0374-93e7-4c1a-8302-2a88079b480d/DRAGEN_4.3.6_CNV_Mag_resource/HG002.bai"
             Int minBQ = 20
             Int mem_gb = 64
             Int cpu = 8
@@ -164,19 +171,17 @@ task SamtoolsDepth {
     }
     command <<<
         # Create input & output directory
-        mkdir input output
+        mkdir output
 
-        mv ~{alignedBam} input/aligned.bam
-        samtools index -@ ~{cpu} input/aligned.bam
-        samtools view -@ ~{cpu} -h -b --region-file ~{target_bed} input/aligned.bam -o case_aligned_region.bam
+        BAMDIR=$(dirname ~{alignedBam})
+        mv ~{alignedBai} ${BAMDIR}
 
-        mv ~{HG001Bam} input/HG001.bam
-        samtools index -@ ~{cpu} input/HG001.bam
-        samtools view -@ ~{cpu} -h -b --region-file ~{target_bed} input/HG001.bam -o HG001_aligned_region.bam
-
-        mv ~{HG002Bam} input/HG002.bam
-        samtools index -@ ~{cpu} input/HG002.bam
-        samtools view -@ ~{cpu} -h -b --region-file ~{target_bed} input/HG002.bam -o HG002_aligned_region.bam
+        for bam in case:~{alignedBam} HG001:~{HG001Bam} HG002:~{HG002Bam}; do
+            sample=${bam%%:*}
+            path=${bam#*:}
+            samtools view -@ ~{cpu} -h -b --region-file ~{target_bed} ${path} -o ${sample}_aligned_region.bam
+            samtools index -@ ~{cpu} ${sample}_aligned_region.bam
+        done
 
 
         # Run samtools depth to get MAPQ20 depth & MAPQ0 depth
