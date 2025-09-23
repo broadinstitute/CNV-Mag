@@ -34,7 +34,6 @@ workflow CNV_Mag {
             sampleName = sampleName,
             alignedBam = cramOrBamFile,
             alignedBai = cramOrBamIndexFile,
-            alignedBamIndex = cramOrBamIndexFile,
             target_bed = GetPaddedCnvBed.paddedCnvBed
     }
     call MagDepth {
@@ -53,6 +52,17 @@ workflow CNV_Mag {
             sampleName = sampleName,
             hardFilteredVcfFile = hardFilteredVcfFile,
             cnvBedFile = cnvBedFile,
+            dockerImage = dockerImage
+    }
+
+    call samplot {
+        input:
+            subset_case_bam = SamtoolsDepth.subset_case_bam,
+            subset_case_bai = SamtoolsDepth.subset_case_bai,
+            subset_HG001_bam = SamtoolsDepth.subset_HG001_bam,
+            subset_HG001_bai = SamtoolsDepth.subset_HG001_bai,
+            subset_HG002_bam = SamtoolsDepth.subset_HG002_bam,
+            subset_HG002_bai = SamtoolsDepth.subset_HG002_bai,
             dockerImage = dockerImage
     }
 
@@ -156,7 +166,6 @@ task SamtoolsDepth {
             String sampleName
             File alignedBam
             File alignedBai
-            File aligned
             File target_bed
             File HG001Bam = "gs://fc-a76d0374-93e7-4c1a-8302-2a88079b480d/DRAGEN_4.3.6_CNV_Mag_resource/HG001.bam"
             File HG001Bai = "gs://fc-a76d0374-93e7-4c1a-8302-2a88079b480d/DRAGEN_4.3.6_CNV_Mag_resource/HG001.bai"
@@ -166,6 +175,7 @@ task SamtoolsDepth {
             Int mem_gb = 64
             Int cpu = 8
             Int disk_size_gb = 500
+            Int maxRetries = 0
             Boolean use_ssd = true
             String samtoolsDocker = "euformatics/samtools:1.20"
     }
@@ -175,6 +185,8 @@ task SamtoolsDepth {
 
         BAMDIR=$(dirname ~{alignedBam})
         mv ~{alignedBai} ${BAMDIR}
+        echo "ls ${BAMDIR}"
+        ls ${BAMDIR}
 
         for bam in case:~{alignedBam} HG001:~{HG001Bam} HG002:~{HG002Bam}; do
             sample=${bam%%:*}
@@ -216,7 +228,7 @@ task SamtoolsDepth {
         docker: samtoolsDocker
         disks: "local-disk " + disk_size_gb + if use_ssd then " SSD" else " HDD"
         preemptible: 0
-        maxRetries: 3
+        maxRetries: maxRetries
     }
 }
 
@@ -312,7 +324,38 @@ task MagSNP{
 }
 
 
-
+task samplot{
+    input {
+        File subset_case_bam
+        File subset_case_bai
+        File subset_HG001_bam
+        File subset_HG001_bai
+        File subset_HG002_bam
+        File subset_HG002_bai
+        String dockerImage
+        Int mem_gb = 16
+        Int cpu = 4
+        Int preemptible = 0
+        Int disk_size_gb = 100
+        Int maxRetries = 1
+        Boolean use_ssd = true
+    }
+    command <<<
+        echo "This is a placeholder for the samplot task."
+        which samplot
+    >>>
+    output {
+        String placeholder = "samplot task completed."
+    }
+    runtime {
+        memory: mem_gb + " GB"
+        cpu: cpu
+        docker: dockerImage
+        disks: "local-disk " + disk_size_gb + if use_ssd then " SSD" else " HDD"
+        preemptible: preemptible
+        maxRetries: maxRetries
+    }
+}
 
 
 
