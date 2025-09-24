@@ -334,7 +334,7 @@ task samplot{
         Boolean use_ssd = true
     }
     command <<<
-        conda activate CNV-Mag
+        source activate CNV-Mag
 
         mkdir output
         echo "cnvBedFile: ~{cnvBedFile}"
