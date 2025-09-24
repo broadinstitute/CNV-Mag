@@ -334,8 +334,9 @@ task samplot{
         Boolean use_ssd = true
     }
     command <<<
-        set -e
         mkdir output
+        echo "cnvBedFile: ~{cnvBedFile}"
+        cat ~{cnvBedFile}
 
         while IFS=$'\t' read -r chr start end; do
             echo "Processing CNV interval: ${chr}:${start}-${end}"
