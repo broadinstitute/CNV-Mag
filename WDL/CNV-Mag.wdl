@@ -354,6 +354,8 @@ task samplot{
             -e ${end}
         done < ~{cnvBedFile}
 
+        echo $(ls output/*png)
+
     >>>
     output {
         Array[File] samplotPlots = glob("output/*png")
