@@ -334,25 +334,27 @@ task samplot{
         Boolean use_ssd = true
     }
     command <<<
+        conda activate CNV-Mag
+
         mkdir output
         echo "cnvBedFile: ~{cnvBedFile}"
         cat ~{cnvBedFile}
 
         while IFS=$'\t' read -r chr start end; do echo "chr: $chr, start: $start, end: $end"; done < ~{cnvBedFile}
 
-        while IFS=$'\t' read -r chr start end; do
-            echo "Processing CNV interval: ${chr}:${start}-${end}"
-            # Generate samplot visualizations for each CNV interval
-            conda run --no-capture-output \
-            -n CNV-Mag \
-            samplot plot \
-            -n ~{sampleName} HG001 HG002 \
-            -b ~{subset_case_bam} ~{subset_HG001_bam} ~{subset_HG002_bam} \
-            -o output/~{sampleName}_${chr}_${start}_${end}.png \
-            -c ${chr} \
-            -s ${start} \
-            -e ${end}
-        done < ~{cnvBedFile}
+#        while IFS=$'\t' read -r chr start end; do
+#            echo "Processing CNV interval: ${chr}:${start}-${end}"
+#            # Generate samplot visualizations for each CNV interval
+#            conda run --no-capture-output \
+#            -n CNV-Mag \
+#            samplot plot \
+#            -n ~{sampleName} HG001 HG002 \
+#            -b ~{subset_case_bam} ~{subset_HG001_bam} ~{subset_HG002_bam} \
+#            -o output/~{sampleName}_${chr}_${start}_${end}.png \
+#            -c ${chr} \
+#            -s ${start} \
+#            -e ${end}
+#        done < ~{cnvBedFile}
 
         echo $(ls output/*png)
         echo $(ls output/)
