@@ -12,7 +12,7 @@ struct RuntimeAttributes {
 workflow CNV_Mag {
     input{
         String sampleName
-        String dockerImage = "us.gcr.io/tag-public/cnv-mag:v0.1"
+        String dockerImage = "us.gcr.io/tag-public/cnv-mag:v0.2"
         File cramOrBamFile
         File cramOrBamIndexFile
         String refGenome = "hg38"
