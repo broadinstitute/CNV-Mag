@@ -345,14 +345,14 @@ task samplot{
             # Generate samplot visualizations for each CNV interval
             conda run --no-capture-output \
             -n CNV-Mag \
-            samplot plot -h
+            samplot plot \
+            -n ~{sampleName} HG001 HG002 \
+            -b ~{subset_case_bam} ~{subset_HG001_bam} ~{subset_HG002_bam} \
+            -o output/~{sampleName}_${chr}_${start}_${end}.png \
+            -c ${chr} \
+            -s ${start} \
+            -e ${end}
         done < ~{cnvBedFile}
-#            -n ~{sampleName} HG001 HG002 \
-#            -b ~{subset_case_bam} ~{subset_HG001_bam} ~{subset_HG002_bam} \
-#            -o output/~{sampleName}_${chr}_${start}_${end}.png \
-#            -c ${chr} \
-#            -s ${start} \
-#            -e ${end}
 
     >>>
     output {
