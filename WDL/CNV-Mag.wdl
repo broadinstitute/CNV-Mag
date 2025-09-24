@@ -340,6 +340,8 @@ task samplot{
         echo "cnvBedFile: ~{cnvBedFile}"
         cat ~{cnvBedFile}
 
+        for i in ~{cnvBedFile}; do echo $i; done
+
         while IFS=$'\t' read -r chr start end; do echo "chr: $chr, start: $start, end: $end"; done < ~{cnvBedFile}
 
 #        while IFS=$'\t' read -r chr start end; do
