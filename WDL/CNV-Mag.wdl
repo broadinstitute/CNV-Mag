@@ -334,8 +334,6 @@ task samplot{
         Boolean use_ssd = true
     }
     command <<<
-        source activate CNV-Mag
-
         mkdir output
 
         # Note: This is not the best practice. However, while loop with IFS for some reasons doesn't work in the WDL
@@ -347,6 +345,8 @@ task samplot{
             start=$(echo $line | cut -f2)
             end=$(echo $line | cut -f3)
             echo "Processing CNV interval: ${chrom}:${start}-${end}"
+            conda run --no-capture-output \
+            -n CNV-Mag \
             samplot plot \
                 -n ~{sampleName} HG001 HG002 \
                 -b ~{subset_case_bam} ~{subset_HG001_bam} ~{subset_HG002_bam} \
