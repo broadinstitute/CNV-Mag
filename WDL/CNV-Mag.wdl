@@ -337,7 +337,7 @@ task samplot{
         set -e
         mkdir output
 
-        for interval in $(cat ~{cnvBedFile}); do
+        while IFS= read -r interval; do
             chr=$(echo $interval | cut -f1)
             start=$(echo $interval | cut -f2)
             end=$(echo $interval | cut -f3)
@@ -345,14 +345,14 @@ task samplot{
             # Generate samplot visualizations for each CNV interval
             conda run --no-capture-output \
             -n CNV-Mag \
-            samplot plot \
-            -n ~{sampleName} HG001 HG002 \
-            -b ~{subset_case_bam} ~{subset_HG001_bam} ~{subset_HG002_bam} \
-            -o output/~{sampleName}_${chr}_${start}_${end}.png \
-            -c ${chr} \
-            -s ${start} \
-            -e ${end}
-        done
+            samplot plot -h
+        done < ~{cnvBedFile}
+#            -n ~{sampleName} HG001 HG002 \
+#            -b ~{subset_case_bam} ~{subset_HG001_bam} ~{subset_HG002_bam} \
+#            -o output/~{sampleName}_${chr}_${start}_${end}.png \
+#            -c ${chr} \
+#            -s ${start} \
+#            -e ${end}
 
     >>>
     output {
