@@ -337,8 +337,9 @@ task samplot{
         source activate CNV-Mag
 
         mkdir output
-        echo "cnvBedFile: ~{cnvBedFile}"
-        cat ~{cnvBedFile}
+
+        # Note: This is not the best practice. However, while loop with IFS for some reasons doesn't work in the WDL
+        # I wasn't able to replicate the issue in the docker container
 
         IFS=$'\n'
         for line in $(cat ~{cnvBedFile}); do
@@ -346,22 +347,14 @@ task samplot{
             start=$(echo $line | cut -f2)
             end=$(echo $line | cut -f3)
             echo "Processing CNV interval: ${chrom}:${start}-${end}"
+            samplot plot \
+                -n ~{sampleName} HG001 HG002 \
+                -b ~{subset_case_bam} ~{subset_HG001_bam} ~{subset_HG002_bam} \
+                -o output/~{sampleName}_${chr}_${start}_${end}.png \
+                -c ${chr} \
+                -s ${start} \
+                -e ${end}
         done
-
-
-#        while IFS=$'\t' read -r chr start end; do
-#            echo "Processing CNV interval: ${chr}:${start}-${end}"
-#            # Generate samplot visualizations for each CNV interval
-#            conda run --no-capture-output \
-#            -n CNV-Mag \
-#            samplot plot \
-#            -n ~{sampleName} HG001 HG002 \
-#            -b ~{subset_case_bam} ~{subset_HG001_bam} ~{subset_HG002_bam} \
-#            -o output/~{sampleName}_${chr}_${start}_${end}.png \
-#            -c ${chr} \
-#            -s ${start} \
-#            -e ${end}
-#        done < ~{cnvBedFile}
 
         echo $(ls output/*png)
         echo $(ls output/)
