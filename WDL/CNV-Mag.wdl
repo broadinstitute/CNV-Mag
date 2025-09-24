@@ -1,5 +1,14 @@
 version 1.0
 
+struct RuntimeAttributes {
+    Int disk_size_gb
+    Int cpu
+    Int mem_gb
+    Int maxRetries
+    Int preemptible
+    Boolean use_ssd
+}
+
 workflow CNV_Mag {
     input{
         String sampleName
@@ -57,6 +66,7 @@ workflow CNV_Mag {
 
     call samplot {
         input:
+            sampleName = sampleName,
             cnvBedFile = cnvBedFile,
             subset_case_bam = SamtoolsDepth.subset_case_bam,
             subset_case_bai = SamtoolsDepth.subset_case_bai,
@@ -85,9 +95,7 @@ task CreateBedFromIntervals {
     input {
         Array[String]? cnvIntervals
         String dockerImage
-        Int mem_gb = 1
-        Int cpu = 1
-        Int disk_size_gb = 10
+        RuntimeAttributes runtimeAttributes = {"disk_size_gb": 10, "cpu": 1, "mem_gb": 4, "maxRetries": 0, "preemptible": 0, "use_ssd": false}
     }
     command <<<
         # Write the CNV intervals to a file
@@ -117,9 +125,9 @@ task CreateBedFromIntervals {
     >>>
     runtime {
         docker: dockerImage
-        cpu: cpu
-        memory: mem_gb + " GB"
-        disks: "local-disk " + disk_size_gb + " HDD"
+        cpu: runtimeAttributes.cpu
+        memory: runtimeAttributes.mem_gb + " GB"
+        disks: "local-disk " + runtimeAttributes.disk_size_gb + " HDD"
     }
     output {
         File output_bed = "cnv_intervals.bed"
@@ -132,9 +140,7 @@ task GetPaddedCnvBed {
         String refGenome
         String dockerImage
         Int padpct = 2 # Percentage to pad the CNV regions
-        Int mem_gb = 4
-        Int cpu = 1
-        Int disk_size_gb = 10
+        RuntimeAttributes runtimeAttributes = {"disk_size_gb": 10, "cpu": 1, "mem_gb": 4, "maxRetries": 0, "preemptible": 0, "use_ssd": false}
     }
 
     command <<<
@@ -153,9 +159,9 @@ task GetPaddedCnvBed {
     >>>
     runtime {
         docker: dockerImage
-        cpu: cpu
-        memory: mem_gb + " GB"
-        disks: "local-disk " + disk_size_gb + " HDD"
+        cpu: runtimeAttributes.cpu
+        memory: runtimeAttributes.mem_gb + " GB"
+        disks: "local-disk " + runtimeAttributes.disk_size_gb + " HDD"
     }
     output {
         File paddedCnvBed = "padded_cnv.bed"
@@ -173,11 +179,7 @@ task SamtoolsDepth {
             File HG002Bam = "gs://fc-a76d0374-93e7-4c1a-8302-2a88079b480d/DRAGEN_4.3.6_CNV_Mag_resource/HG002.bam"
             File HG002Bai = "gs://fc-a76d0374-93e7-4c1a-8302-2a88079b480d/DRAGEN_4.3.6_CNV_Mag_resource/HG002.bai"
             Int minBQ = 20
-            Int mem_gb = 64
-            Int cpu = 8
-            Int disk_size_gb = 500
-            Int maxRetries = 0
-            Boolean use_ssd = true
+            RuntimeAttributes runtimeAttributes = {"disk_size_gb": 500, "cpu": 8, "mem_gb": 64, "maxRetries": 0, "preemptible": 0, "use_ssd": true}
             String samtoolsDocker = "euformatics/samtools:1.20"
     }
     command <<<
@@ -192,8 +194,8 @@ task SamtoolsDepth {
         for bam in case:~{alignedBam} HG001:~{HG001Bam} HG002:~{HG002Bam}; do
             sample=${bam%%:*}
             path=${bam#*:}
-            samtools view -@ ~{cpu} -h -b --region-file ~{target_bed} ${path} -o ${sample}_aligned_region.bam
-            samtools index -@ ~{cpu} ${sample}_aligned_region.bam
+            samtools view -@ ~{runtimeAttributes.cpu} -h -b --region-file ~{target_bed} ${path} -o ${sample}_aligned_region.bam
+            samtools index -@ ~{runtimeAttributes.cpu} ${sample}_aligned_region.bam
         done
 
 
@@ -201,7 +203,7 @@ task SamtoolsDepth {
         # Counting fragments instead of reads using -s option
         for mq in 0 20; do
             samtools depth \
-            -@ ~{cpu} \
+            -@ ~{runtimeAttributes.cpu} \
             -b ~{target_bed} \
             --min-BQ ~{minBQ} \
             --min-MQ ${mq} \
@@ -224,12 +226,12 @@ task SamtoolsDepth {
         File subset_HG002_bai = "HG002_aligned_region.bam.bai"
     }
     runtime {
-        memory: mem_gb * 1000 + " MB"
-        cpu: cpu
+        memory: runtimeAttributes.mem_gb * 1000 + " MB"
+        cpu: runtimeAttributes.cpu
         docker: samtoolsDocker
-        disks: "local-disk " + disk_size_gb + if use_ssd then " SSD" else " HDD"
-        preemptible: 0
-        maxRetries: maxRetries
+        disks: "local-disk " + runtimeAttributes.disk_size_gb + if runtimeAttributes.use_ssd then " SSD" else " HDD"
+        preemptible: runtimeAttributes.preemptible
+        maxRetries: runtimeAttributes.maxRetries
     }
 }
 
@@ -242,12 +244,7 @@ task MagDepth{
             File cnvBedFile
             File PaddedcnvBedFile
             String refGenome
-            Int mem_gb = 64
-            Int cpu = 8
-            Int preemptible = 0
-            Int disk_size_gb = 500
-            Int maxRetries = 0
-            Boolean use_ssd = true
+            RuntimeAttributes runtimeAttributes = {"disk_size_gb": 500, "cpu": 8, "mem_gb": 64, "maxRetries": 0, "preemptible": 0, "use_ssd": true}
         }
         command <<<
             set -e
@@ -269,12 +266,12 @@ task MagDepth{
             Array[File] magDepthPlots = glob("output/*png")
         }
         runtime {
-            memory: mem_gb + " GB"
-            cpu: cpu
+            memory: runtimeAttributes.mem_gb + " GB"
+            cpu: runtimeAttributes.cpu
             docker: dockerImage
-            disks: "local-disk " + disk_size_gb + if use_ssd then " SSD" else " HDD"
-            preemptible: preemptible
-            maxRetries: maxRetries
+            disks: "local-disk " + runtimeAttributes.disk_size_gb + if runtimeAttributes.use_ssd then " SSD" else " HDD"
+            preemptible: runtimeAttributes.preemptible
+            maxRetries: runtimeAttributes.maxRetries
         }
 }
 
@@ -286,12 +283,7 @@ task MagSNP{
         File HG001FilteredVcfFile = "gs://fc-a76d0374-93e7-4c1a-8302-2a88079b480d/DRAGEN_4.3.6_NIST_default/NA12878_HG001_1000ng_3_NVX/NA12878_HG001_1000ng_3_NVX.hard-filtered.vcf.gz"
         File HG002FilteredVcfFile = "gs://fc-a76d0374-93e7-4c1a-8302-2a88079b480d/DRAGEN_4.3.6_NIST_default/NA24385_HG002_1_NVX/NA24385_HG002_1_NVX.hard-filtered.vcf.gz"
         File cnvBedFile
-        Int mem_gb = 64
-        Int cpu = 8
-        Int preemptible = 0
-        Int disk_size_gb = 500
-        Int maxRetries = 0
-        Boolean use_ssd = true
+        RuntimeAttributes runtimeAttributes = {"disk_size_gb": 500, "cpu": 8, "mem_gb": 64, "maxRetries": 0, "preemptible": 0, "use_ssd": true}
     }
     command <<<
         set -e
@@ -315,12 +307,12 @@ task MagSNP{
         Array[File] magSNPPlots = glob("output/*png")
     }
     runtime {
-        memory: mem_gb + " GB"
-        cpu: cpu
+        memory: runtimeAttributes.mem_gb + " GB"
+        cpu: runtimeAttributes.cpu
         docker: dockerImage
-        disks: "local-disk " + disk_size_gb + if use_ssd then " SSD" else " HDD"
-        preemptible: preemptible
-        maxRetries: maxRetries
+        disks: "local-disk " + runtimeAttributes.disk_size_gb + if runtimeAttributes.use_ssd then " SSD" else " HDD"
+        preemptible: runtimeAttributes.preemptible
+        maxRetries: runtimeAttributes.maxRetries
     }
 }
 
@@ -336,12 +328,7 @@ task samplot{
         File subset_HG002_bam
         File subset_HG002_bai
         String dockerImage
-        Int mem_gb = 16
-        Int cpu = 4
-        Int preemptible = 0
-        Int disk_size_gb = 100
-        Int maxRetries = 0
-        Boolean use_ssd = true
+        RuntimeAttributes runtimeAttributes = {"disk_size_gb": 500, "cpu": 4, "mem_gb": 32, "maxRetries": 0, "preemptible": 0, "use_ssd": true}
     }
     command <<<
         set -e
@@ -369,12 +356,12 @@ task samplot{
         Array[File] samplotPlots = glob("output/*png")
     }
     runtime {
-        memory: mem_gb + " GB"
-        cpu: cpu
+        memory: runtimeAttributes.mem_gb + " GB"
+        cpu: runtimeAttributes.cpu
         docker: dockerImage
-        disks: "local-disk " + disk_size_gb + if use_ssd then " SSD" else " HDD"
-        preemptible: preemptible
-        maxRetries: maxRetries
+        disks: "local-disk " + runtimeAttributes.disk_size_gb + if runtimeAttributes.use_ssd then " SSD" else " HDD"
+        preemptible: runtimeAttributes.preemptible
+        maxRetries: runtimeAttributes.maxRetries
     }
 }
 
