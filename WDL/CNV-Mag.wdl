@@ -339,6 +339,10 @@ task samplot{
         cat ~{cnvBedFile}
 
         while IFS=$'\t' read -r chr start end; do
+            echo "chr: $chr, start: $start, end: $end"
+        done < ~{cnvBedFile}
+
+        while IFS=$'\t' read -r chr start end; do
             echo "Processing CNV interval: ${chr}:${start}-${end}"
             # Generate samplot visualizations for each CNV interval
             conda run --no-capture-output \
