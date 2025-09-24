@@ -337,11 +337,8 @@ task samplot{
         set -e
         mkdir output
 
-        while IFS= read -r interval; do
-            chr=$(echo $interval | cut -f1)
-            start=$(echo $interval | cut -f2)
-            end=$(echo $interval | cut -f3)
-
+        while IFS=$'\t' read -r chr start end; do
+            echo "Processing CNV interval: ${chr}:${start}-${end}"
             # Generate samplot visualizations for each CNV interval
             conda run --no-capture-output \
             -n CNV-Mag \
@@ -355,6 +352,7 @@ task samplot{
         done < ~{cnvBedFile}
 
         echo $(ls output/*png)
+        echo $(ls output/)
 
     >>>
     output {
