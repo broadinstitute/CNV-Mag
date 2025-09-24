@@ -57,6 +57,7 @@ workflow CNV_Mag {
 
     call samplot {
         input:
+            cnvBedFile = cnvBedFile,
             subset_case_bam = SamtoolsDepth.subset_case_bam,
             subset_case_bai = SamtoolsDepth.subset_case_bai,
             subset_HG001_bam = SamtoolsDepth.subset_HG001_bam,
@@ -180,13 +181,13 @@ task SamtoolsDepth {
             String samtoolsDocker = "euformatics/samtools:1.20"
     }
     command <<<
-        # Create input & output directory
+        # Create output directory
         mkdir output
 
+        # Move the bai file to the same directory as the bam file
+        # As TDR delivers the index file to a different path
         BAMDIR=$(dirname ~{alignedBam})
         mv ~{alignedBai} ${BAMDIR}
-        echo "ls ${BAMDIR}"
-        ls ${BAMDIR}
 
         for bam in case:~{alignedBam} HG001:~{HG001Bam} HG002:~{HG002Bam}; do
             sample=${bam%%:*}
@@ -245,7 +246,7 @@ task MagDepth{
             Int cpu = 8
             Int preemptible = 0
             Int disk_size_gb = 500
-            Int maxRetries = 1
+            Int maxRetries = 0
             Boolean use_ssd = true
         }
         command <<<
@@ -289,7 +290,7 @@ task MagSNP{
         Int cpu = 8
         Int preemptible = 0
         Int disk_size_gb = 500
-        Int maxRetries = 1
+        Int maxRetries = 0
         Boolean use_ssd = true
     }
     command <<<
@@ -326,6 +327,8 @@ task MagSNP{
 
 task samplot{
     input {
+        String sampleName
+        File cnvBedFile
         File subset_case_bam
         File subset_case_bai
         File subset_HG001_bam
@@ -337,15 +340,33 @@ task samplot{
         Int cpu = 4
         Int preemptible = 0
         Int disk_size_gb = 100
-        Int maxRetries = 1
+        Int maxRetries = 0
         Boolean use_ssd = true
     }
     command <<<
-        echo "This is a placeholder for the samplot task."
-        which samplot
+        set -e
+        mkdir output
+
+        for interval in $(cat ~{cnvBedFile}); do
+            chr=$(echo $interval | cut -f1)
+            start=$(echo $interval | cut -f2)
+            end=$(echo $interval | cut -f3)
+
+            # Generate samplot visualizations for each CNV interval
+            conda run --no-capture-output \
+            -n CNV-Mag \
+            samplot plot \
+            -n ~{sampleName} HG001 HG002 \
+            -b ~{subset_case_bam} ~{subset_HG001_bam} ~{subset_HG002_bam} \
+            -o output/~{sampleName}_${chr}_${start}_${end}.png \
+            -c ${chr} \
+            -s ${start} \
+            -e ${end}
+        done
+
     >>>
     output {
-        String placeholder = "samplot task completed."
+        Array[File] samplotPlots = glob("output/*png")
     }
     runtime {
         memory: mem_gb + " GB"
