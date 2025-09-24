@@ -340,9 +340,14 @@ task samplot{
         echo "cnvBedFile: ~{cnvBedFile}"
         cat ~{cnvBedFile}
 
-        for i in $(cat ~{cnvBedFile}); do echo $i; done
+        IFS=$'\n'
+        for line in $(cat ~{cnvBedFile}); do
+            chrom=$(echo $line | cut -f1)
+            start=$(echo $line | cut -f2)
+            end=$(echo $line | cut -f3)
+            echo "Processing CNV interval: ${chrom}:${start}-${end}"
+        done
 
-        while IFS=$'\t' read -r chr start end; do echo "chr: $chr, start: $start, end: $end"; done < $(cat ~{cnvBedFile})
 
 #        while IFS=$'\t' read -r chr start end; do
 #            echo "Processing CNV interval: ${chr}:${start}-${end}"
