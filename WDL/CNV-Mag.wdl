@@ -341,6 +341,11 @@ task samplot{
         # Note: This is not the best practice. However, while IFS for some reasons doesn't work in the WDL
         # I wasn't able to replicate the issue in the docker container
 
+        # Check if while loop works with the updated docker (LAST TIME)
+        while IFS=$'\t' read -r chrom start end; do
+            echo "Chrom: $chrom, Start: $start, End: $end"
+        done < ~{cnvBedFile}
+
         IFS=$'\n'
         for line in $(cat ~{cnvBedFile}); do
             chrom=$(echo $line | cut -f1)
@@ -351,7 +356,7 @@ task samplot{
                 -n ~{sampleName} HG001 HG002 \
                 -b ~{subset_case_bam} ~{subset_HG001_bam} ~{subset_HG002_bam} \
                 -o output/~{sampleName}_${chr}_${start}_${end}.png \
-                -c ${chr} \
+                -c ${chrom} \
                 -s ${start} \
                 -e ${end}
         done
