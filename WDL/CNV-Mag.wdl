@@ -17,9 +17,8 @@ workflow CNV_Mag {
         String refGenome = "hg38"
         File? cnvBedFile
         Array[String]? cnvIntervals
-        File? hardFilteredVcfFile
+        File hardFilteredVcfFile
         Boolean skipCnvMag = false
-        Boolean skipCnvSnp = false
     }
 
     if (defined(cnvIntervals)) {
@@ -60,14 +59,12 @@ workflow CNV_Mag {
         }
     }
 
-    if (skipCnvMag == false) {
-        call MagSNP {
-            input:
-                sampleName = sampleName,
-                hardFilteredVcfFile = hardFilteredVcfFile,
-                cnvBedFile = cnvBedFile,
-                dockerImage = dockerImage
-        }
+    call MagSNP {
+        input:
+            sampleName = sampleName,
+            hardFilteredVcfFile = hardFilteredVcfFile,
+            cnvBedFile = cnvBedFile,
+            dockerImage = dockerImage
     }
 
     call samplot {
@@ -88,7 +85,7 @@ workflow CNV_Mag {
     File mapq0_depth_profile = SamtoolsDepth.mapq0_depth_profile
     File mapq20_depth_profile = SamtoolsDepth.mapq20_depth_profile
     Array[File]? magDepthPlots = MagDepth.magDepthPlots
-    Array[File]? magSNPPlots = MagSNP.magSNPPlots
+    Array[File] magSNPPlots = MagSNP.magSNPPlots
     Array[File] samplotPlots = samplot.samplotPlots
     }
     meta {
@@ -373,7 +370,7 @@ task samplot{
                 -c ${chrom} \
                 -s ${start} \
                 -e ${end} \
-                -t CNV \
+                -t Event_of_Interest \
                 --include_mqual 0 \
                 --separate_mqual 1 \
                 -A ${ANNO} \
