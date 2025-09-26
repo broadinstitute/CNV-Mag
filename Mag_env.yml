@@ -7,6 +7,6 @@ dependencies:
   - numpy
   - pandas
   - seaborn
-  - matplotlib
+  - matplotlib=3.6 # Samplot has issues with recent matplotlib versions
   - fsspec
   - samplot

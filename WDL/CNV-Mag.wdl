@@ -66,6 +66,7 @@ workflow CNV_Mag {
     call samplot {
         input:
             sampleName = sampleName,
+            refGenome = refGenome,
             cnvBedFile = cnvBedFile,
             subset_case_bam = SamtoolsDepth.subset_case_bam,
             subset_case_bai = SamtoolsDepth.subset_case_bai,
@@ -322,6 +323,7 @@ task MagSNP{
 task samplot{
     input {
         String sampleName
+        String refGenome
         File cnvBedFile
         File subset_case_bam
         File subset_case_bai
@@ -338,13 +340,17 @@ task samplot{
 
         mkdir output
 
-        # Note: This is not the best practice. However, while IFS for some reasons doesn't work in the WDL
-        # I wasn't able to replicate the issue in the docker container
+        if [[ ~{refGenome} == "hg19" ]]; then
+            ANNO="/BaseImage/MagRef/DRAGEN.GRCh37.cnv.excluded_intervals.bed.gz"
+        elif [[ ~{refGenome} == "hg38" ]]; then
+            ANNO="/BaseImage/MagRef/DRAGEN.GRCh38.cnv.excluded_intervals.bed.gz"
+        else
+            echo "Annotation for reference genome $refGenome not supported"
+            exit 1
+        fi
 
-        # Check if while loop works with the updated docker (LAST TIME)
-        while IFS=$'\t' read -r chrom start end; do
-            echo "Chrom: $chrom, Start: $start, End: $end"
-        done < ~{cnvBedFile}
+        # Note: This is not the best practice. However, while IFS for some reasons doesn't work in the WDL
+        # I wasn't able to replicate this issue in the docker container locally.
 
         IFS=$'\n'
         for line in $(cat ~{cnvBedFile}); do
@@ -355,14 +361,16 @@ task samplot{
             samplot plot \
                 -n ~{sampleName} HG001 HG002 \
                 -b ~{subset_case_bam} ~{subset_HG001_bam} ~{subset_HG002_bam} \
-                -o output/~{sampleName}_${chr}_${start}_${end}.png \
+                -o output/~{sampleName}_${chrom}_${start}_${end}.png \
                 -c ${chrom} \
                 -s ${start} \
-                -e ${end}
+                -e ${end} \
+                -t CNV \
+                --include_mqual 0 \
+                --separate_mqual 1 \
+                -A ${ANNO} \
+                --hide_annotation_labels
         done
-
-        echo $(ls output/*png)
-        echo $(ls output/)
 
     >>>
     output {
