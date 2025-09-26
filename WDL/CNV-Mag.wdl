@@ -17,7 +17,9 @@ workflow CNV_Mag {
         String refGenome = "hg38"
         File? cnvBedFile
         Array[String]? cnvIntervals
-        File hardFilteredVcfFile
+        File? hardFilteredVcfFile
+        Boolean skipCnvMag = false
+        Boolean skipCnvSnp = false
     }
 
     if (defined(cnvIntervals)) {
@@ -44,23 +46,28 @@ workflow CNV_Mag {
             alignedBai = cramOrBamIndexFile,
             target_bed = GetPaddedCnvBed.paddedCnvBed
     }
-    call MagDepth {
-        input:
-            sampleName = sampleName,
-            dockerImage = dockerImage,
-            mapq20_depth_profile = SamtoolsDepth.mapq20_depth_profile,
-            mapq0_depth_profile = SamtoolsDepth.mapq0_depth_profile,
-            refGenome = refGenome,
-            cnvBedFile = cnvBedFile,
-            PaddedcnvBedFile = GetPaddedCnvBed.paddedCnvBed
+
+    if (skipCnvMag == false) {
+        call MagDepth {
+            input:
+                sampleName = sampleName,
+                dockerImage = dockerImage,
+                mapq20_depth_profile = SamtoolsDepth.mapq20_depth_profile,
+                mapq0_depth_profile = SamtoolsDepth.mapq0_depth_profile,
+                refGenome = refGenome,
+                cnvBedFile = cnvBedFile,
+                PaddedcnvBedFile = GetPaddedCnvBed.paddedCnvBed
+        }
     }
 
-    call MagSNP {
-        input:
-            sampleName = sampleName,
-            hardFilteredVcfFile = hardFilteredVcfFile,
-            cnvBedFile = cnvBedFile,
-            dockerImage = dockerImage
+    if (skipCnvMag == false) {
+        call MagSNP {
+            input:
+                sampleName = sampleName,
+                hardFilteredVcfFile = hardFilteredVcfFile,
+                cnvBedFile = cnvBedFile,
+                dockerImage = dockerImage
+        }
     }
 
     call samplot {
@@ -80,8 +87,8 @@ workflow CNV_Mag {
     output {
     File mapq0_depth_profile = SamtoolsDepth.mapq0_depth_profile
     File mapq20_depth_profile = SamtoolsDepth.mapq20_depth_profile
-    Array[File] magDepthPlots = MagDepth.magDepthPlots
-    Array[File] magSNPPlots = MagSNP.magSNPPlots
+    Array[File]? magDepthPlots = MagDepth.magDepthPlots
+    Array[File]? magSNPPlots = MagSNP.magSNPPlots
     Array[File] samplotPlots = samplot.samplotPlots
     }
     meta {
