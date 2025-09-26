@@ -82,6 +82,7 @@ workflow CNV_Mag {
     File mapq20_depth_profile = SamtoolsDepth.mapq20_depth_profile
     Array[File] magDepthPlots = MagDepth.magDepthPlots
     Array[File] magSNPPlots = MagSNP.magSNPPlots
+    Array[File] samplotPlots = samplot.samplotPlots
     }
     meta {
         description: "CNV-Mag: A Tool to Visualize CNV Events in WGS Data"
