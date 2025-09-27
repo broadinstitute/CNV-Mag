@@ -339,6 +339,7 @@ task samplot{
         String dockerImage
         RuntimeAttributes runtimeAttributes = {"disk_size_gb": 500, "cpu": 4, "mem_gb": 32, "maxRetries": 0, "preemptible": 0}
         Boolean use_ssd = true
+        Int MaxCoverage = 100
     }
     command <<<
         source activate CNV-Mag
@@ -376,6 +377,7 @@ task samplot{
                 -A ${ANNO} \
                 --hide_annotation_labels \
                 --zoom 300000000 \
+                --max_coverage ~{MaxCoverage}
         done
 
     >>>
