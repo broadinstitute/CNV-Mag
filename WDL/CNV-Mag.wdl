@@ -374,7 +374,8 @@ task samplot{
                 --include_mqual 0 \
                 --separate_mqual 1 \
                 -A ${ANNO} \
-                --hide_annotation_labels
+                --hide_annotation_labels \
+                --zoom 300000000 \
         done
 
     >>>
