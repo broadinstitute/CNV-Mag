@@ -340,6 +340,7 @@ task samplot{
         RuntimeAttributes runtimeAttributes = {"disk_size_gb": 500, "cpu": 4, "mem_gb": 32, "maxRetries": 0, "preemptible": 0}
         Boolean use_ssd = true
         Int MaxCoverage = 100
+        Boolean coverageOnly = false
     }
     command <<<
         source activate CNV-Mag
@@ -376,8 +377,11 @@ task samplot{
                 --separate_mqual 1 \
                 -A ${ANNO} \
                 --hide_annotation_labels \
-                --zoom 300000000 \
+                --zoom 10000000 \
                 --max_coverage ~{MaxCoverage}
+                if [ "~{coverageOnly}" = true ] ; then
+                    --coverage_only
+                fi
         done
 
     >>>
