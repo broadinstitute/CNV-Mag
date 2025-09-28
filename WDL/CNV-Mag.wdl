@@ -378,7 +378,7 @@ task samplot{
                 -A ${ANNO} \
                 --hide_annotation_labels \
                 --zoom 10000000 \
-                --max_coverage ~{MaxCoverage}
+                --max_coverage ~{MaxCoverage} \
                 if [ "~{coverageOnly}" = true ] ; then
                     --coverage_only
                 fi
