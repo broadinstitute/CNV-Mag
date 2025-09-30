@@ -1,10 +1,12 @@
 name: CNV-Mag
 channels:
   - defaults
+  - bioconda
 dependencies:
   - python=3.10
   - numpy
   - pandas
   - seaborn
-  - matplotlib
+  - matplotlib=3.6 # Samplot has issues with recent matplotlib versions
   - fsspec
+  - samplot

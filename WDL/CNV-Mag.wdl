@@ -1,15 +1,24 @@
 version 1.0
 
+struct RuntimeAttributes {
+    Int disk_size_gb
+    Int cpu
+    Int mem_gb
+    Int maxRetries
+    Int preemptible
+}
+
 workflow CNV_Mag {
     input{
         String sampleName
-        String dockerImage = "us.gcr.io/tag-public/cnv-mag:v0.1"
+        String dockerImage = "us.gcr.io/tag-public/cnv-mag:v0.2"
         File cramOrBamFile
         File cramOrBamIndexFile
         String refGenome = "hg38"
         File? cnvBedFile
         Array[String]? cnvIntervals
         File hardFilteredVcfFile
+        Boolean skipCnvMag = false
     }
 
     if (defined(cnvIntervals)) {
@@ -36,15 +45,18 @@ workflow CNV_Mag {
             alignedBai = cramOrBamIndexFile,
             target_bed = GetPaddedCnvBed.paddedCnvBed
     }
-    call MagDepth {
-        input:
-            sampleName = sampleName,
-            dockerImage = dockerImage,
-            mapq20_depth_profile = SamtoolsDepth.mapq20_depth_profile,
-            mapq0_depth_profile = SamtoolsDepth.mapq0_depth_profile,
-            refGenome = refGenome,
-            cnvBedFile = cnvBedFile,
-            PaddedcnvBedFile = GetPaddedCnvBed.paddedCnvBed
+
+    if (skipCnvMag == false) {
+        call MagDepth {
+            input:
+                sampleName = sampleName,
+                dockerImage = dockerImage,
+                mapq20_depth_profile = SamtoolsDepth.mapq20_depth_profile,
+                mapq0_depth_profile = SamtoolsDepth.mapq0_depth_profile,
+                refGenome = refGenome,
+                cnvBedFile = cnvBedFile,
+                PaddedcnvBedFile = GetPaddedCnvBed.paddedCnvBed
+        }
     }
 
     call MagSNP {
@@ -55,11 +67,26 @@ workflow CNV_Mag {
             dockerImage = dockerImage
     }
 
+    call samplot {
+        input:
+            sampleName = sampleName,
+            refGenome = refGenome,
+            cnvBedFile = cnvBedFile,
+            subset_case_bam = SamtoolsDepth.subset_case_bam,
+            subset_case_bai = SamtoolsDepth.subset_case_bai,
+            subset_HG001_bam = SamtoolsDepth.subset_HG001_bam,
+            subset_HG001_bai = SamtoolsDepth.subset_HG001_bai,
+            subset_HG002_bam = SamtoolsDepth.subset_HG002_bam,
+            subset_HG002_bai = SamtoolsDepth.subset_HG002_bai,
+            dockerImage = dockerImage
+    }
+
     output {
     File mapq0_depth_profile = SamtoolsDepth.mapq0_depth_profile
     File mapq20_depth_profile = SamtoolsDepth.mapq20_depth_profile
-    Array[File] magDepthPlots = MagDepth.magDepthPlots
+    Array[File]? magDepthPlots = MagDepth.magDepthPlots
     Array[File] magSNPPlots = MagSNP.magSNPPlots
+    Array[File] samplotPlots = samplot.samplotPlots
     }
     meta {
         description: "CNV-Mag: A Tool to Visualize CNV Events in WGS Data"
@@ -73,9 +100,7 @@ task CreateBedFromIntervals {
     input {
         Array[String]? cnvIntervals
         String dockerImage
-        Int mem_gb = 1
-        Int cpu = 1
-        Int disk_size_gb = 10
+        RuntimeAttributes runtimeAttributes = {"disk_size_gb": 10, "cpu": 1, "mem_gb": 4, "maxRetries": 0, "preemptible": 0}
     }
     command <<<
         # Write the CNV intervals to a file
@@ -105,9 +130,9 @@ task CreateBedFromIntervals {
     >>>
     runtime {
         docker: dockerImage
-        cpu: cpu
-        memory: mem_gb + " GB"
-        disks: "local-disk " + disk_size_gb + " HDD"
+        cpu: runtimeAttributes.cpu
+        memory: runtimeAttributes.mem_gb + " GB"
+        disks: "local-disk " + runtimeAttributes.disk_size_gb + " HDD"
     }
     output {
         File output_bed = "cnv_intervals.bed"
@@ -120,9 +145,7 @@ task GetPaddedCnvBed {
         String refGenome
         String dockerImage
         Int padpct = 2 # Percentage to pad the CNV regions
-        Int mem_gb = 4
-        Int cpu = 1
-        Int disk_size_gb = 10
+        RuntimeAttributes runtimeAttributes = {"disk_size_gb": 10, "cpu": 1, "mem_gb": 4, "maxRetries": 0, "preemptible": 0}
     }
 
     command <<<
@@ -141,9 +164,9 @@ task GetPaddedCnvBed {
     >>>
     runtime {
         docker: dockerImage
-        cpu: cpu
-        memory: mem_gb + " GB"
-        disks: "local-disk " + disk_size_gb + " HDD"
+        cpu: runtimeAttributes.cpu
+        memory: runtimeAttributes.mem_gb + " GB"
+        disks: "local-disk " + runtimeAttributes.disk_size_gb + " HDD"
     }
     output {
         File paddedCnvBed = "padded_cnv.bed"
@@ -161,28 +184,32 @@ task SamtoolsDepth {
             File HG002Bam = "gs://fc-a76d0374-93e7-4c1a-8302-2a88079b480d/DRAGEN_4.3.6_CNV_Mag_resource/HG002.bam"
             File HG002Bai = "gs://fc-a76d0374-93e7-4c1a-8302-2a88079b480d/DRAGEN_4.3.6_CNV_Mag_resource/HG002.bai"
             Int minBQ = 20
-            Int mem_gb = 64
-            Int cpu = 8
-            Int disk_size_gb = 500
             Boolean use_ssd = true
+            RuntimeAttributes runtimeAttributes = {"disk_size_gb": 500, "cpu": 8, "mem_gb": 64, "maxRetries": 0, "preemptible": 0}
             String samtoolsDocker = "euformatics/samtools:1.20"
     }
     command <<<
         # Create output directory
         mkdir output
 
+        # Move the bai file to the same directory as the bam file
+        # As TDR delivers the index file to a different path
+        BAMDIR=$(dirname ~{alignedBam})
+        mv ~{alignedBai} ${BAMDIR}
+
         for bam in case:~{alignedBam} HG001:~{HG001Bam} HG002:~{HG002Bam}; do
             sample=${bam%%:*}
             path=${bam#*:}
-            samtools view -@ ~{cpu} -h -b --region-file ~{target_bed} ${path} -o ${sample}_aligned_region.bam
-            samtools index -@ ~{cpu} ${sample}_aligned_region.bam
+            samtools view -@ ~{runtimeAttributes.cpu} -h -b --region-file ~{target_bed} ${path} -o ${sample}_aligned_region.bam
+            samtools index -@ ~{runtimeAttributes.cpu} ${sample}_aligned_region.bam
         done
+
 
         # Run samtools depth to get MAPQ20 depth & MAPQ0 depth
         # Counting fragments instead of reads using -s option
         for mq in 0 20; do
             samtools depth \
-            -@ ~{cpu} \
+            -@ ~{runtimeAttributes.cpu} \
             -b ~{target_bed} \
             --min-BQ ~{minBQ} \
             --min-MQ ${mq} \
@@ -197,14 +224,20 @@ task SamtoolsDepth {
     output {
         File mapq0_depth_profile = "output/~{sampleName}_MAPQ0_samtools.depth"
         File mapq20_depth_profile = "output/~{sampleName}_MAPQ20_samtools.depth"
+        File subset_case_bam = "case_aligned_region.bam"
+        File subset_case_bai = "case_aligned_region.bam.bai"
+        File subset_HG001_bam = "HG001_aligned_region.bam"
+        File subset_HG001_bai = "HG001_aligned_region.bam.bai"
+        File subset_HG002_bam = "HG002_aligned_region.bam"
+        File subset_HG002_bai = "HG002_aligned_region.bam.bai"
     }
     runtime {
-        memory: mem_gb * 1000 + " MB"
-        cpu: cpu
+        memory: runtimeAttributes.mem_gb * 1000 + " MB"
+        cpu: runtimeAttributes.cpu
         docker: samtoolsDocker
-        disks: "local-disk " + disk_size_gb + if use_ssd then " SSD" else " HDD"
-        preemptible: 0
-        maxRetries: 3
+        disks: "local-disk " + runtimeAttributes.disk_size_gb + if use_ssd then " SSD" else " HDD"
+        preemptible: runtimeAttributes.preemptible
+        maxRetries: runtimeAttributes.maxRetries
     }
 }
 
@@ -217,12 +250,8 @@ task MagDepth{
             File cnvBedFile
             File PaddedcnvBedFile
             String refGenome
-            Int mem_gb = 64
-            Int cpu = 8
-            Int preemptible = 0
-            Int disk_size_gb = 500
-            Int maxRetries = 1
             Boolean use_ssd = true
+            RuntimeAttributes runtimeAttributes = {"disk_size_gb": 500, "cpu": 8, "mem_gb": 64, "maxRetries": 0, "preemptible": 0}
         }
         command <<<
             set -e
@@ -244,12 +273,12 @@ task MagDepth{
             Array[File] magDepthPlots = glob("output/*png")
         }
         runtime {
-            memory: mem_gb + " GB"
-            cpu: cpu
+            memory: runtimeAttributes.mem_gb + " GB"
+            cpu: runtimeAttributes.cpu
             docker: dockerImage
-            disks: "local-disk " + disk_size_gb + if use_ssd then " SSD" else " HDD"
-            preemptible: preemptible
-            maxRetries: maxRetries
+            disks: "local-disk " + runtimeAttributes.disk_size_gb + if use_ssd then " SSD" else " HDD"
+            preemptible: runtimeAttributes.preemptible
+            maxRetries: runtimeAttributes.maxRetries
         }
 }
 
@@ -261,11 +290,7 @@ task MagSNP{
         File HG001FilteredVcfFile = "gs://fc-a76d0374-93e7-4c1a-8302-2a88079b480d/DRAGEN_4.3.6_NIST_default/NA12878_HG001_1000ng_3_NVX/NA12878_HG001_1000ng_3_NVX.hard-filtered.vcf.gz"
         File HG002FilteredVcfFile = "gs://fc-a76d0374-93e7-4c1a-8302-2a88079b480d/DRAGEN_4.3.6_NIST_default/NA24385_HG002_1_NVX/NA24385_HG002_1_NVX.hard-filtered.vcf.gz"
         File cnvBedFile
-        Int mem_gb = 64
-        Int cpu = 8
-        Int preemptible = 0
-        Int disk_size_gb = 500
-        Int maxRetries = 1
+        RuntimeAttributes runtimeAttributes = {"disk_size_gb": 500, "cpu": 8, "mem_gb": 64, "maxRetries": 0, "preemptible": 0}
         Boolean use_ssd = true
     }
     command <<<
@@ -290,17 +315,86 @@ task MagSNP{
         Array[File] magSNPPlots = glob("output/*png")
     }
     runtime {
-        memory: mem_gb + " GB"
-        cpu: cpu
+        memory: runtimeAttributes.mem_gb + " GB"
+        cpu: runtimeAttributes.cpu
         docker: dockerImage
-        disks: "local-disk " + disk_size_gb + if use_ssd then " SSD" else " HDD"
-        preemptible: preemptible
-        maxRetries: maxRetries
+        disks: "local-disk " + runtimeAttributes.disk_size_gb + if use_ssd then " SSD" else " HDD"
+        preemptible: runtimeAttributes.preemptible
+        maxRetries: runtimeAttributes.maxRetries
     }
 }
 
 
+task samplot{
+    input {
+        String sampleName
+        String refGenome
+        File cnvBedFile
+        File subset_case_bam
+        File subset_case_bai
+        File subset_HG001_bam
+        File subset_HG001_bai
+        File subset_HG002_bam
+        File subset_HG002_bai
+        String dockerImage
+        RuntimeAttributes runtimeAttributes = {"disk_size_gb": 500, "cpu": 4, "mem_gb": 32, "maxRetries": 0, "preemptible": 0}
+        Boolean use_ssd = true
+        Int MaxCoverage = 100
+        String additional_options = "--coverage_only"
+    }
+    command <<<
+        source activate CNV-Mag
 
+        mkdir output
+
+        if [[ ~{refGenome} == "hg19" ]]; then
+            ANNO="/BaseImage/MagRef/DRAGEN.GRCh37.cnv.excluded_intervals.bed.gz"
+        elif [[ ~{refGenome} == "hg38" ]]; then
+            ANNO="/BaseImage/MagRef/DRAGEN.GRCh38.cnv.excluded_intervals.bed.gz"
+        else
+            echo "Annotation for reference genome $refGenome not supported"
+            exit 1
+        fi
+
+        # Note: This is not the best practice. However, while IFS for some reasons doesn't work in the WDL
+        # I wasn't able to replicate this issue in the docker container locally.
+
+        IFS=$'\n'
+        for line in $(cat ~{cnvBedFile}); do
+            chrom=$(echo $line | cut -f1)
+            start=$(echo $line | cut -f2)
+            end=$(echo $line | cut -f3)
+            echo "Processing CNV interval: ${chrom}:${start}-${end}"
+            samplot plot \
+                -n ~{sampleName} HG001 HG002 \
+                -b ~{subset_case_bam} ~{subset_HG001_bam} ~{subset_HG002_bam} \
+                -o output/~{sampleName}_${chrom}_${start}_${end}.png \
+                -c ${chrom} \
+                -s ${start} \
+                -e ${end} \
+                -t Event_of_Interest \
+                --include_mqual 0 \
+                --separate_mqual 1 \
+                -A ${ANNO} \
+                --hide_annotation_labels \
+                --zoom 10000000 \
+                --max_coverage ~{MaxCoverage} \
+                ~{additional_options}
+        done
+
+    >>>
+    output {
+        Array[File] samplotPlots = glob("output/*png")
+    }
+    runtime {
+        memory: runtimeAttributes.mem_gb + " GB"
+        cpu: runtimeAttributes.cpu
+        docker: dockerImage
+        disks: "local-disk " + runtimeAttributes.disk_size_gb + if use_ssd then " SSD" else " HDD"
+        preemptible: runtimeAttributes.preemptible
+        maxRetries: runtimeAttributes.maxRetries
+    }
+}
 
 
 
