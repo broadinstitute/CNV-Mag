@@ -51,6 +51,9 @@ if ref_genome == 'hg38':
 elif ref_genome == 'hg19':
     chrom_size_path = "/BaseImage/MagRef/Homo_sapiens_assembly19.genome"
     centromere_bed_path = "/BaseImage/MagRef/Homo_sapiens_assembly19_centromeres.bed"
+elif ref_genome == 'hg19_nochr':
+    chrom_size_path = "/BaseImage/MagRef/Homo_sapiens_assembly19_nochr.genome"
+    centromere_bed_path = "/BaseImage/MagRef/Homo_sapiens_assembly19_nochr_centromeres.bed"
 else:
     raise ValueError('INPUT REF GENOME MUST BE EITHER "hg38" or "hg19"')
 

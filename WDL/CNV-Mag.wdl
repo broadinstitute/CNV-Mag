@@ -352,7 +352,7 @@ task samplot{
         if [[ ~{refGenome} == "hg19" ]]; then
             ANNO="/BaseImage/MagRef/DRAGEN.GRCh37.cnv.excluded_intervals.bed.gz"
         elif [[ ~{refGenome} == "hg19_nochr" ]]; then
-            ANNO="/BaseImage/MagRef/DRAGEN.GRCh37_nochr.cnv.excluded_intervals.bed.gz"
+            ANNO="/BaseImage/MagRef/GRCh37_nonunique_l250_m0_e0.bed.gz"
         elif [[ ~{refGenome} == "hg38" ]]; then
             ANNO="/BaseImage/MagRef/DRAGEN.GRCh38.cnv.excluded_intervals.bed.gz"
         else
