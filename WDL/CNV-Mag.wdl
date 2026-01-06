@@ -151,6 +151,8 @@ task GetPaddedCnvBed {
     command <<<
         if [[ ~{refGenome} == "hg19" ]]; then
             genomeBoundaryFile="/BaseImage/MagRef/Homo_sapiens_assembly19.genome"
+        elif [[ ~{refGenome} == "hg19_nochr" ]]; then
+            genomeBoundaryFile="/BaseImage/MagRef/Homo_sapiens_assembly19_nochr.genome"
         elif [[ ~{refGenome} == "hg38" ]]; then
             genomeBoundaryFile="/BaseImage/MagRef/Homo_sapiens_assembly38.genome"
         else
@@ -349,11 +351,12 @@ task samplot{
 
         if [[ ~{refGenome} == "hg19" ]]; then
             ANNO="/BaseImage/MagRef/DRAGEN.GRCh37.cnv.excluded_intervals.bed.gz"
+        elif [[ ~{refGenome} == "hg19_nochr" ]]; then
+            ANNO="/BaseImage/MagRef/DRAGEN.GRCh37_nochr.cnv.excluded_intervals.bed.gz"
         elif [[ ~{refGenome} == "hg38" ]]; then
             ANNO="/BaseImage/MagRef/DRAGEN.GRCh38.cnv.excluded_intervals.bed.gz"
         else
             echo "Annotation for reference genome $refGenome not supported"
-            exit 1
         fi
 
         # Note: This is not the best practice. However, while IFS for some reasons doesn't work in the WDL
