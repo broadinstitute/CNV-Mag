@@ -110,6 +110,7 @@ task CreateBedFromIntervals {
         done
 
         # Create a bed file from the CNV intervals
+        eval "$(micromamba shell hook --shell bash)"
         micromamba activate CNV-Mag
         python3 <<CODE
 
@@ -258,7 +259,7 @@ task MagDepth{
         command <<<
             set -e
             mkdir output
-
+            eval "$(micromamba shell hook --shell bash)"
             # Run the MagDepth script
             micromamba run -n CNV-Mag \
             python3 /BaseImage/CNV-Mag/MagDepth.py \
@@ -296,7 +297,7 @@ task MagSNP{
     }
     command <<<
         set -e
-        
+        eval "$(micromamba shell hook --shell bash)"
         micromamba activate CNV-Mag
         mkdir output
         mkdir input
@@ -359,6 +360,7 @@ task samplot{
         String additional_options = "--coverage_only"
     }
     command <<<
+        eval "$(micromamba shell hook --shell bash)"
         micromamba activate CNV-Mag
 
         mkdir output
