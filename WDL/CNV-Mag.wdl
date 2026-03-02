@@ -260,8 +260,7 @@ task MagDepth{
             mkdir output
 
             # Run the MagDepth script
-            conda run --no-capture-output \
-            -n CNV-Mag \
+            micromamba run -n CNV-Mag \
             python3 /BaseImage/CNV-Mag/MagDepth.py \
             --maq20 ~{mapq20_depth_profile} \
             --maq0 ~{mapq0_depth_profile} \
@@ -314,8 +313,7 @@ task MagSNP{
         ls input/
 
         # Run the coverage profile visualization script
-        conda run --no-capture-output \
-        -n CNV-Mag \
+        micromamba run -n CNV-Mag \
         python3 /BaseImage/CNV-Mag/MagSNP.py \
         -v1 input/$(basename ~{hardFilteredVcfFile}) \
         -v2 input/$(basename ~{HG001FilteredVcfFile}) \
