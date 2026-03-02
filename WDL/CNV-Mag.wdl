@@ -303,11 +303,15 @@ task MagSNP{
         cp ~{hardFilteredVcfFile} input/
         cp ~{HG001FilteredVcfFile} input/
         cp ~{HG002FilteredVcfFile} input/
+        
+        echo "Input VCF files copied to local directory:"
+        ls input/
 
-        bcftools index input/$(basename ~{hardFilteredVcfFile})
-        bcftools index input/$(basename ~{HG001FilteredVcfFile})
-        bcftools index input/$(basename ~{HG002FilteredVcfFile})
-
+        bcftools index -t input/$(basename ~{hardFilteredVcfFile})
+        bcftools index -t input/$(basename ~{HG001FilteredVcfFile})
+        bcftools index -t input/$(basename ~{HG002FilteredVcfFile})
+        echo "VCF files indexed."
+        ls input/
 
         # Run the coverage profile visualization script
         conda run --no-capture-output \
