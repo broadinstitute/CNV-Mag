@@ -296,6 +296,8 @@ task MagSNP{
     }
     command <<<
         set -e
+        
+        micromamba activate CNV-Mag
         mkdir output
         mkdir input
 
