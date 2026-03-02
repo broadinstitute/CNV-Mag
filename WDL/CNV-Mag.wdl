@@ -110,7 +110,7 @@ task CreateBedFromIntervals {
         done
 
         # Create a bed file from the CNV intervals
-        source activate CNV-Mag
+        micromamba activate CNV-Mag
         python3 <<CODE
 
         with open('cnv_intervals.txt', 'r') as f:
@@ -357,7 +357,7 @@ task samplot{
         String additional_options = "--coverage_only"
     }
     command <<<
-        source activate CNV-Mag
+        micromamba activate CNV-Mag
 
         mkdir output
 
