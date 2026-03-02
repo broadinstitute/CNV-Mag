@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import matplotlib.ticker as ticker
+from pysam import VariantFile
 import logging
 import sys
 import argparse
@@ -36,37 +37,26 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S")
 log = logging.getLogger("Create SNP AF Distribution Viz for CNV-Mag")
 
-
-def read_vcf(vcf_path):
-    vcf_header_names = ['CHROM', 'POS', 'ID', 'REF', 'ALT', 'QUAL', 'FILTER', 'INFO', 'FORMAT', 'SAMPLE']
-    df = pd.read_csv(vcf_path, comment='#', sep='\t', header=None, names=vcf_header_names, low_memory=False)
-    return df
-
-def annotate_af(vcf_df, interval):
+def annotate_af(vcf_path, interval):
     interval_chr = interval.split(":")[0]
     interval_start = int(interval.split(":")[1].split("-")[0])
     interval_end = int(interval.split(":")[1].split("-")[1])
-    interval_pass_vcf_df = vcf_df[(vcf_df['FILTER'] == 'PASS')&(vcf_df['CHROM']==interval_chr)&(vcf_df['POS']>=interval_start)&(vcf_df['POS']<=interval_end)]
-    # only select SNPs
-    interval_pass_snp_index = [index for index, row in interval_pass_vcf_df.iterrows() if len(row['ALT']) == 1 and len(row['REF']) == 1 and 'AF' in row['FORMAT']]
-    interval_pass_snp_df = interval_pass_vcf_df.loc[interval_pass_snp_index]
 
-    if interval_pass_snp_df.shape[0] == 0:
-        raise(f"No SNPs on {interval_chr} wihtin {interval_start} and {interval_end}")
+    vcf = VariantFile(vcf_path)
+    sample_name = list(vcf.header.samples)[0]
+    pos_af_list = []
+    for rec in vcf.fetch(contig=interval_chr, start=interval_start, end=interval_end):
+        if rec.filter.keys() == ['PASS']:
+            af = np.round(rec.samples[sample_name]["AF"][0], 2)
+            pos_af_list.append((rec.pos, af))
 
-    af_list = []
-    for index, row in interval_pass_snp_df.iterrows():
-        af_index = row['FORMAT'].split(':').index('AF')
-        af = row['SAMPLE'].split(':')[af_index]
-        af_list.append(float(af))
-    interval_pass_snp_df['ALLELE_FRACTION'] = af_list
+    if len(pos_af_list) == 0:
+        raise ValueError(f"No SNPs on {interval_chr} wihtin {interval_start} and {interval_end}")
+
+    interval_pass_snp_df = pd.DataFrame(pos_af_list, columns=['POS', 'ALLELE_FRACTION'])
     return interval_pass_snp_df
 
 def examine_interval_with_snp(vcf1_path: str,vcf2_path: str,interval_list: list, vcf3_path: str, dragen_call=None, vcf1_name="", vcf2_name="HG001", vcf3_name="HG002"):
-    variants_vcf1_df = pd.read_csv(vcf1_path, sep='\t', comment='#', names = ['CHROM', 'POS', 'ID', 'REF', 'ALT', 'QUAL', 'FILTER', 'INFO', 'FORMAT', 'SAMPLE'])
-    variants_vcf2_df = pd.read_csv(vcf2_path, sep='\t', comment='#', names = ['CHROM', 'POS', 'ID', 'REF', 'ALT', 'QUAL', 'FILTER', 'INFO', 'FORMAT', 'SAMPLE'])
-    variants_vcf3_df = pd.read_csv(vcf3_path, sep='\t', comment='#', names = ['CHROM', 'POS', 'ID', 'REF', 'ALT', 'QUAL', 'FILTER', 'INFO', 'FORMAT', 'SAMPLE'])
-
     for interval in interval_list:
         try:
             # Get components of interval
@@ -76,13 +66,13 @@ def examine_interval_with_snp(vcf1_path: str,vcf2_path: str,interval_list: list,
 
             # select SNPs in the interval
             print(f"VCF1: {vcf1_name}")
-            vcf1_interval_snp_df = annotate_af(variants_vcf1_df, interval)
+            vcf1_interval_snp_df = annotate_af(vcf1_path, interval)
             print(f"PASS SNP Count within {interval}: {vcf1_interval_snp_df.shape[0]}\n")
             print(f"VCF2: {vcf2_name}")
-            vcf2_interval_snp_df = annotate_af(variants_vcf2_df, interval)
+            vcf2_interval_snp_df = annotate_af(vcf2_path, interval)
             print(f"PASS SNP Count within {interval}: {vcf2_interval_snp_df.shape[0]}\n")
             print(f"VCF3: {vcf3_name}")
-            vcf3_interval_snp_df = annotate_af(variants_vcf3_df, interval)
+            vcf3_interval_snp_df = annotate_af(vcf3_path, interval)
             print(f"PASS SNP Count within {interval}: {vcf3_interval_snp_df.shape[0]}\n")
 
 
@@ -168,5 +158,3 @@ else:
     vcf3_name = args.vcf3.split('/')[-1].split('.')[0]
 
 examine_interval_with_snp(vcf1_path=vcf1_path,vcf2_path=vcf2_path, vcf3_path=vcf3_path, interval_list=cnv_interval_list, dragen_call=None, vcf1_name=vcf1_name, vcf2_name=vcf2_name, vcf3_name=vcf3_name)
-
-# TODO: Edit Logging Part of MagSNP.py
