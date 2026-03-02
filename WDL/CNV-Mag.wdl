@@ -298,14 +298,24 @@ task MagSNP{
     command <<<
         set -e
         mkdir output
+        mkdir input
+
+        cp ~{hardFilteredVcfFile} input/
+        cp ~{HG001FilteredVcfFile} input/
+        cp ~{HG002FilteredVcfFile} input/
+
+        bcftools index input/$(basename ~{hardFilteredVcfFile})
+        bcftools index input/$(basename ~{HG001FilteredVcfFile})
+        bcftools index input/$(basename ~{HG002FilteredVcfFile})
+
 
         # Run the coverage profile visualization script
         conda run --no-capture-output \
         -n CNV-Mag \
         python3 /BaseImage/CNV-Mag/MagSNP.py \
-        -v1 ~{hardFilteredVcfFile} \
-        -v2 ~{HG001FilteredVcfFile} \
-        -v3 ~{HG002FilteredVcfFile} \
+        -v1 input/$(basename ~{hardFilteredVcfFile}) \
+        -v2 input/$(basename ~{HG001FilteredVcfFile}) \
+        -v3 input/$(basename ~{HG002FilteredVcfFile}) \
         -b ~{cnvBedFile} \
         -n1 ~{sampleName} \
         -n2 HG001 \

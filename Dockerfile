@@ -2,8 +2,8 @@
 FROM continuumio/miniconda3
 LABEL org.opencontainers.image.authors="gaoyueya@broadinstitute.org"
 
-# Install bedtools
-RUN conda install -y -c bioconda bioconda/label/main::bedtools && conda clean --all
+# Install bedtools and bcftools
+RUN conda install -y -c bioconda bioconda/label/main::bedtools bioconda/label/main::bcftools && conda clean --all
 
 # Create the environment
 COPY Mag_env.yml .
