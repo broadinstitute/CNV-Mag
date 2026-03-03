@@ -326,6 +326,10 @@ task MagSNP{
             PASSONLY="False"
         fi
 
+        # Debugging: Print the command that will be executed
+        echo "PASS only option set to: ${PASSONLY}"
+        echo "python3 /BaseImage/CNV-Mag/MagSNP.py -v1 input/$(basename ~{hardFilteredVcfFile}) -v2 input/$(basename ~{HG001FilteredVcfFile}) -v3 input/$(basename ~{HG002FilteredVcfFile}) -b ~{cnvBedFile} -n1 ~{sampleName} -n2 HG001 -n3 HG002 -p ${PASSONLY} -o output"
+
         # Run the coverage profile visualization script
         micromamba run -n CNV-Mag \
         python3 /BaseImage/CNV-Mag/MagSNP.py \
