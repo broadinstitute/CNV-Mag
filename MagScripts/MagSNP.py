@@ -39,6 +39,9 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S")
 log = logging.getLogger("Create SNP AF Distribution Viz for CNV-Mag")
 
+def is_snp(rec):
+    return len(rec.ref) == 1 and all(len(alt) == 1 for alt in rec.alts if alt is not None)
+
 def annotate_af(vcf_path, interval, pass_only=True):
     interval_chr = interval.split(":")[0]
     interval_start = int(interval.split(":")[1].split("-")[0])
@@ -49,12 +52,13 @@ def annotate_af(vcf_path, interval, pass_only=True):
     pos_af_list = []
     for rec in vcf.fetch(contig=interval_chr, start=interval_start, end=interval_end):
         if pass_only:
-            if rec.filter.keys() == ['PASS']:
+            if rec.filter.keys() == ['PASS'] and is_snp(rec):
                 af = np.round(rec.samples[sample_name]["AF"][0], 2)
                 pos_af_list.append((rec.pos, af))
         else:
-            af = np.round(rec.samples[sample_name]["AF"][0], 2)
-            pos_af_list.append((rec.pos, af))
+            if is_snp(rec):
+                af = np.round(rec.samples[sample_name]["AF"][0], 2)
+                pos_af_list.append((rec.pos, af))
 
     if len(pos_af_list) == 0:
         raise ValueError(f"No SNPs on {interval_chr} wihtin {interval_start} and {interval_end}")
