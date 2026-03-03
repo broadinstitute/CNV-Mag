@@ -297,7 +297,7 @@ task MagSNP{
         File HG002FilteredVcfFile = "gs://fc-a76d0374-93e7-4c1a-8302-2a88079b480d/DRAGEN_4.3.6_NIST_default/NA24385_HG002_1_NVX/NA24385_HG002_1_NVX.hard-filtered.vcf.gz"
         File cnvBedFile
         RuntimeAttributes runtimeAttributes = {"disk_size_gb": 500, "cpu": 8, "mem_gb": 64, "maxRetries": 0, "preemptible": 0}
-        Boolean pass_only = true
+        String args = "--pass_only" # Whether to include only PASS SNPs in the MagSNP plot
         Boolean use_ssd = true
     }
     command <<<
@@ -317,14 +317,6 @@ task MagSNP{
         bcftools index -t input/$(basename ~{HG001FilteredVcfFile})
         bcftools index -t input/$(basename ~{HG002FilteredVcfFile})
         echo "VCF files indexed."
-        
-        if [[ ~{pass_only} == true ]]; then
-            echo "Filtering to include only PASS SNPs."
-            PASSONLY="True"
-        else
-            echo "Including all SNPs regardless of filter status."
-            PASSONLY="False"
-        fi
 
         # Debugging: Print the command that will be executed
         echo "PASS only option set to: ${PASSONLY}"
@@ -340,8 +332,8 @@ task MagSNP{
         -n1 ~{sampleName} \
         -n2 HG001 \
         -n3 HG002  \
-        -p ${PASSONLY} \
-        -o output
+        -o output \
+        ${args}
 
     >>>
     output {
