@@ -320,10 +320,10 @@ task MagSNP{
         
         if [[ ~{pass_only} == true ]]; then
             echo "Filtering to include only PASS SNPs."
-            PASSONLY=True
+            PASSONLY="True"
         else
             echo "Including all SNPs regardless of filter status."
-            PASSONLY=False
+            PASSONLY="False"
         fi
 
         # Run the coverage profile visualization script
@@ -336,8 +336,8 @@ task MagSNP{
         -n1 ~{sampleName} \
         -n2 HG001 \
         -n3 HG002  \
-        -o output \
-        --pass_only ${PASSONLY}
+        -p ${PASSONLY} \
+        -o output
 
     >>>
     output {
