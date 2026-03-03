@@ -16,7 +16,7 @@ argparser.add_argument('-b', '--bed', help='bed file with CNV interval list', re
 argparser.add_argument('-n1', '--name1', help='name of VCF file 1', required=False)
 argparser.add_argument('-n2', '--name2', help='name of VCF file 2', required=False)
 argparser.add_argument('-n3', '--name3', help='name of VCF file 3', required=False)
-argparser.add_argument('-p', '--pass_only', help='Whether to include only PASS SNPs (default: True)', default=True, required=False, action='store_true')
+argparser.add_argument('-p', '--pass_only', help='Whether to include only PASS SNPs (default: True)', default=True, required=False)
 argparser.add_argument('-o', '--output', help='output directory path', default='.')
 args = argparser.parse_args()
 
