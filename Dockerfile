@@ -2,14 +2,14 @@
 FROM mambaorg/micromamba:2.5-amazon2023
 LABEL org.opencontainers.image.authors="gaoyueya@broadinstitute.org"
 
-# Install bedtools and bcftools
-RUN micromamba install -y -n base -c conda-forge -c bioconda \
-    bedtools bcftools \
-    && micromamba clean --all --yes
-
 # Create the environment
 COPY Mag_env.yml .
 RUN micromamba create -n CNV-Mag -f Mag_env.yml
+
+# Install bedtools and bcftools
+RUN micromamba install -y -n CNV-Mag -c conda-forge -c bioconda \
+    bedtools bcftools \
+    && micromamba clean --all --yes
 
 # Specify Workdir
 WORKDIR /BaseImage

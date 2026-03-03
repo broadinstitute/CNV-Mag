@@ -16,6 +16,7 @@ argparser.add_argument('-b', '--bed', help='bed file with CNV interval list', re
 argparser.add_argument('-n1', '--name1', help='name of VCF file 1', required=False)
 argparser.add_argument('-n2', '--name2', help='name of VCF file 2', required=False)
 argparser.add_argument('-n3', '--name3', help='name of VCF file 3', required=False)
+argparser.add_argument('-p', '--pass_only', help='Whether to include only PASS SNPs (default: True)', default=True, required=False, action='store_true')
 argparser.add_argument('-o', '--output', help='output directory path', default='.')
 args = argparser.parse_args()
 
@@ -23,11 +24,12 @@ vcf1_path = args.vcf1
 vcf2_path = args.vcf2
 vcf3_path = args.vcf3
 output_dir = args.output
-
+pass_only = args.pass_only
 # print the input arguments
 print(f"VCF file 1: {vcf1_path}")
 print(f"VCF file 2: {vcf2_path}")
 print(f"VCF file 3: {vcf3_path}")
+print(f"Include only PASS SNPs: {pass_only}")
 
 # Set up logging
 logging.basicConfig(
@@ -37,7 +39,7 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S")
 log = logging.getLogger("Create SNP AF Distribution Viz for CNV-Mag")
 
-def annotate_af(vcf_path, interval):
+def annotate_af(vcf_path, interval, pass_only=True):
     interval_chr = interval.split(":")[0]
     interval_start = int(interval.split(":")[1].split("-")[0])
     interval_end = int(interval.split(":")[1].split("-")[1])
@@ -46,7 +48,11 @@ def annotate_af(vcf_path, interval):
     sample_name = list(vcf.header.samples)[0]
     pos_af_list = []
     for rec in vcf.fetch(contig=interval_chr, start=interval_start, end=interval_end):
-        if rec.filter.keys() == ['PASS']:
+        if pass_only:
+            if rec.filter.keys() == ['PASS']:
+                af = np.round(rec.samples[sample_name]["AF"][0], 2)
+                pos_af_list.append((rec.pos, af))
+        else:
             af = np.round(rec.samples[sample_name]["AF"][0], 2)
             pos_af_list.append((rec.pos, af))
 
@@ -56,7 +62,7 @@ def annotate_af(vcf_path, interval):
     interval_pass_snp_df = pd.DataFrame(pos_af_list, columns=['POS', 'ALLELE_FRACTION'])
     return interval_pass_snp_df
 
-def examine_interval_with_snp(vcf1_path: str,vcf2_path: str,interval_list: list, vcf3_path: str, dragen_call=None, vcf1_name="", vcf2_name="HG001", vcf3_name="HG002"):
+def examine_interval_with_snp(vcf1_path: str,vcf2_path: str,interval_list: list, vcf3_path: str, vcf1_name="", vcf2_name="HG001", vcf3_name="HG002", pass_only=True):
     for interval in interval_list:
         try:
             # Get components of interval
@@ -66,13 +72,13 @@ def examine_interval_with_snp(vcf1_path: str,vcf2_path: str,interval_list: list,
 
             # select SNPs in the interval
             print(f"VCF1: {vcf1_name}")
-            vcf1_interval_snp_df = annotate_af(vcf1_path, interval)
+            vcf1_interval_snp_df = annotate_af(vcf1_path, interval, pass_only=pass_only)
             print(f"PASS SNP Count within {interval}: {vcf1_interval_snp_df.shape[0]}\n")
             print(f"VCF2: {vcf2_name}")
-            vcf2_interval_snp_df = annotate_af(vcf2_path, interval)
+            vcf2_interval_snp_df = annotate_af(vcf2_path, interval, pass_only=pass_only)
             print(f"PASS SNP Count within {interval}: {vcf2_interval_snp_df.shape[0]}\n")
             print(f"VCF3: {vcf3_name}")
-            vcf3_interval_snp_df = annotate_af(vcf3_path, interval)
+            vcf3_interval_snp_df = annotate_af(vcf3_path, interval, pass_only=pass_only)
             print(f"PASS SNP Count within {interval}: {vcf3_interval_snp_df.shape[0]}\n")
 
 
@@ -121,11 +127,6 @@ def examine_interval_with_snp(vcf1_path: str,vcf2_path: str,interval_list: list,
             percent_interval_vcf3_af_1 = (interval_af_1_df/vcf3_interval_snp_df.shape[0])*100
             axs[1, 2].text(0.1, 0.8, f"Total SNPs: {vcf3_interval_snp_df.shape[0]:,}\nAF=1: {percent_interval_vcf3_af_1:.2f}%", fontsize=10, fontweight='bold', transform=axs[1,2].transAxes, color='blue')
 
-            if dragen_call:
-                for i in [0, 1]:
-                    axs[0, i].axhline(y=dragen_call[0], color='red', linestyle='--', label='DRAGEN CNV Call')
-                    axs[0, i].axhline(y=dragen_call[1], color='red', linestyle='--')
-                    axs[0, i].legend()
             fmt_interval = f"{interval_chr}:{interval_pos:,}-{interval_end:,}"
             plt.suptitle(t=f"SNP AF at Interval {fmt_interval}", fontsize=16)
 
@@ -157,4 +158,4 @@ else:
     vcf2_name = args.vcf2.split('/')[-1].split('.')[0]
     vcf3_name = args.vcf3.split('/')[-1].split('.')[0]
 
-examine_interval_with_snp(vcf1_path=vcf1_path,vcf2_path=vcf2_path, vcf3_path=vcf3_path, interval_list=cnv_interval_list, dragen_call=None, vcf1_name=vcf1_name, vcf2_name=vcf2_name, vcf3_name=vcf3_name)
+examine_interval_with_snp(vcf1_path=vcf1_path,vcf2_path=vcf2_path, vcf3_path=vcf3_path, interval_list=cnv_interval_list, vcf1_name=vcf1_name, vcf2_name=vcf2_name, vcf3_name=vcf3_name, pass_only=pass_only)
