@@ -150,6 +150,10 @@ task GetPaddedCnvBed {
     }
 
     command <<<
+        # Enable micromamba and activate the environment with bedtools installed
+        eval "$(micromamba shell hook --shell bash)"
+        micromamba activate CNV-Mag
+
         if [[ ~{refGenome} == "hg19" ]]; then
             genomeBoundaryFile="/BaseImage/MagRef/Homo_sapiens_assembly19.genome"
         elif [[ ~{refGenome} == "hg19_nochr" ]]; then
