@@ -110,7 +110,8 @@ task CreateBedFromIntervals {
         done
 
         # Create a bed file from the CNV intervals
-        source activate CNV-Mag
+        eval "$(micromamba shell hook --shell bash)"
+        micromamba activate CNV-Mag
         python3 <<CODE
 
         with open('cnv_intervals.txt', 'r') as f:
@@ -149,8 +150,14 @@ task GetPaddedCnvBed {
     }
 
     command <<<
+        # Enable micromamba and activate the environment with bedtools installed
+        eval "$(micromamba shell hook --shell bash)"
+        micromamba activate CNV-Mag
+
         if [[ ~{refGenome} == "hg19" ]]; then
             genomeBoundaryFile="/BaseImage/MagRef/Homo_sapiens_assembly19.genome"
+        elif [[ ~{refGenome} == "hg19_nochr" ]]; then
+            genomeBoundaryFile="/BaseImage/MagRef/Homo_sapiens_assembly19_nochr.genome"
         elif [[ ~{refGenome} == "hg38" ]]; then
             genomeBoundaryFile="/BaseImage/MagRef/Homo_sapiens_assembly38.genome"
         else
@@ -256,10 +263,9 @@ task MagDepth{
         command <<<
             set -e
             mkdir output
-
+            eval "$(micromamba shell hook --shell bash)"
             # Run the MagDepth script
-            conda run --no-capture-output \
-            -n CNV-Mag \
+            micromamba run -n CNV-Mag \
             python3 /BaseImage/CNV-Mag/MagDepth.py \
             --maq20 ~{mapq20_depth_profile} \
             --maq0 ~{mapq0_depth_profile} \
@@ -291,24 +297,43 @@ task MagSNP{
         File HG002FilteredVcfFile = "gs://fc-a76d0374-93e7-4c1a-8302-2a88079b480d/DRAGEN_4.3.6_NIST_default/NA24385_HG002_1_NVX/NA24385_HG002_1_NVX.hard-filtered.vcf.gz"
         File cnvBedFile
         RuntimeAttributes runtimeAttributes = {"disk_size_gb": 500, "cpu": 8, "mem_gb": 64, "maxRetries": 0, "preemptible": 0}
+        String args = "--pass_only" # Whether to include only PASS SNPs in the MagSNP plot
         Boolean use_ssd = true
     }
     command <<<
         set -e
+        eval "$(micromamba shell hook --shell bash)"
+        micromamba activate CNV-Mag
         mkdir output
+        mkdir input
+
+        cp ~{hardFilteredVcfFile} input/
+        cp ~{HG001FilteredVcfFile} input/
+        cp ~{HG002FilteredVcfFile} input/
+        
+        echo "Input VCF files copied to local directory:"
+
+        bcftools index -t input/$(basename ~{hardFilteredVcfFile})
+        bcftools index -t input/$(basename ~{HG001FilteredVcfFile})
+        bcftools index -t input/$(basename ~{HG002FilteredVcfFile})
+        echo "VCF files indexed."
+
+        # Debugging: Print the command that will be executed
+        echo "PASS only option set to: ${PASSONLY}"
+        echo "python3 /BaseImage/CNV-Mag/MagSNP.py -v1 input/$(basename ~{hardFilteredVcfFile}) -v2 input/$(basename ~{HG001FilteredVcfFile}) -v3 input/$(basename ~{HG002FilteredVcfFile}) -b ~{cnvBedFile} -n1 ~{sampleName} -n2 HG001 -n3 HG002 -p ${PASSONLY} -o output"
 
         # Run the coverage profile visualization script
-        conda run --no-capture-output \
-        -n CNV-Mag \
+        micromamba run -n CNV-Mag \
         python3 /BaseImage/CNV-Mag/MagSNP.py \
-        -v1 ~{hardFilteredVcfFile} \
-        -v2 ~{HG001FilteredVcfFile} \
-        -v3 ~{HG002FilteredVcfFile} \
+        -v1 input/$(basename ~{hardFilteredVcfFile}) \
+        -v2 input/$(basename ~{HG001FilteredVcfFile}) \
+        -v3 input/$(basename ~{HG002FilteredVcfFile}) \
         -b ~{cnvBedFile} \
         -n1 ~{sampleName} \
         -n2 HG001 \
         -n3 HG002  \
-        -o output
+        -o output \
+        ${args}
 
     >>>
     output {
@@ -343,17 +368,19 @@ task samplot{
         String additional_options = "--coverage_only"
     }
     command <<<
-        source activate CNV-Mag
+        eval "$(micromamba shell hook --shell bash)"
+        micromamba activate CNV-Mag
 
         mkdir output
 
         if [[ ~{refGenome} == "hg19" ]]; then
             ANNO="/BaseImage/MagRef/DRAGEN.GRCh37.cnv.excluded_intervals.bed.gz"
+        elif [[ ~{refGenome} == "hg19_nochr" ]]; then
+            ANNO="/BaseImage/MagRef/GRCh37_nonunique_l250_m0_e0.bed.gz"
         elif [[ ~{refGenome} == "hg38" ]]; then
             ANNO="/BaseImage/MagRef/DRAGEN.GRCh38.cnv.excluded_intervals.bed.gz"
         else
             echo "Annotation for reference genome $refGenome not supported"
-            exit 1
         fi
 
         # Note: This is not the best practice. However, while IFS for some reasons doesn't work in the WDL
