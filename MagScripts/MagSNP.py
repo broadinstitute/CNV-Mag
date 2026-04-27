@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -47,21 +48,21 @@ def annotate_af(vcf_path, interval, pass_only=True):
     interval_start = int(interval.split(":")[1].split("-")[0])
     interval_end = int(interval.split(":")[1].split("-")[1])
 
-    vcf = VariantFile(vcf_path)
-    sample_name = list(vcf.header.samples)[0]
     pos_af_list = []
-    for rec in vcf.fetch(contig=interval_chr, start=interval_start, end=interval_end):
-        if pass_only:
-            if rec.filter.keys() == ['PASS'] and is_snp(rec):
-                af = np.round(rec.samples[sample_name]["AF"][0], 2)
-                pos_af_list.append((rec.pos, af))
-        else:
-            if is_snp(rec):
-                af = np.round(rec.samples[sample_name]["AF"][0], 2)
-                pos_af_list.append((rec.pos, af))
+    with VariantFile(vcf_path) as vcf:
+        sample_name = list(vcf.header.samples)[0]
+        for rec in vcf.fetch(contig=interval_chr, start=interval_start, end=interval_end):
+            if pass_only:
+                if rec.filter.keys() == ['PASS'] and is_snp(rec):
+                    af = np.round(rec.samples[sample_name]["AF"][0], 2)
+                    pos_af_list.append((rec.pos, af))
+            else:
+                if is_snp(rec):
+                    af = np.round(rec.samples[sample_name]["AF"][0], 2)
+                    pos_af_list.append((rec.pos, af))
 
     if len(pos_af_list) == 0:
-        raise ValueError(f"No SNPs on {interval_chr} wihtin {interval_start} and {interval_end}")
+        raise ValueError(f"No SNPs on {interval_chr} within {interval_start} and {interval_end}")
 
     interval_pass_snp_df = pd.DataFrame(pos_af_list, columns=['POS', 'ALLELE_FRACTION'])
     return interval_pass_snp_df
@@ -92,7 +93,7 @@ def examine_interval_with_snp(vcf1_path: str,vcf2_path: str,interval_list: list,
             else:
                 alpha = 0.1
 
-            f, axs = plt.subplots(nrows=2, ncols=3, figsize=(15, 5), sharex='col', sharey='row')
+            _, axs = plt.subplots(nrows=2, ncols=3, figsize=(15, 5), sharex='col', sharey='row')
             # Plotting VCF1
             sns.scatterplot(data=vcf1_interval_snp_df, y='POS', x='ALLELE_FRACTION', ax=axs[0,0], alpha=alpha,color='black',s=1)
             sns.histplot(data=vcf1_interval_snp_df, x='ALLELE_FRACTION', bins=50, ax=axs[1,0], facecolor='black', linewidth=1, alpha=0.75)
@@ -134,10 +135,8 @@ def examine_interval_with_snp(vcf1_path: str,vcf2_path: str,interval_list: list,
             fmt_interval = f"{interval_chr}:{interval_pos:,}-{interval_end:,}"
             plt.suptitle(t=f"SNP AF at Interval {fmt_interval}", fontsize=16)
 
-            if output_dir.endswith('/'):
-                plt.savefig(f"{output_dir}SNP_AF_Interval_{interval.replace(':','_')}.png", dpi=300)
-            else:
-                plt.savefig(f"{output_dir}/SNP_AF_Interval_{interval.replace(':','_')}.png", dpi=300)
+            plt.savefig(os.path.join(output_dir, f"SNP_AF_Interval_{interval.replace(':','_')}.png"), dpi=300)
+            plt.close()
         except Exception as e:
             print(f"Error processing interval {interval}: {e}")
             continue

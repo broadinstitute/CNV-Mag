@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -115,6 +116,8 @@ def get_binned_histogram(interval_depth:pd.DataFrame, bin_size=5000, depth_bins=
 def plot_cnv_depth(mapq20_depth_path, mapq0_depth_path, target_intervals, padded_intervals):
     sample_name = mapq0_depth_path.split("/")[-1].split("_")[0]
     sample_names = [sample_name, "HG001", "HG002"]
+    mq20_depth_df_all = pd.read_csv(mapq20_depth_path, sep="\t", header=None)
+    mq0_depth_df_all = pd.read_csv(mapq0_depth_path, sep="\t", header=None)
     for index, interval in enumerate(target_intervals):
         # Get interval start and end
         interval_chr = interval.split(':')[0]
@@ -139,16 +142,19 @@ def plot_cnv_depth(mapq20_depth_path, mapq0_depth_path, target_intervals, padded
             raise Exception(f"Interval chromosome mismatch: {interval_chr} != {padded_interval_chr}")
 
         # Make the y-axis lim consistent across all samples
-        proband_mq20_depth_df = pd.read_csv(mapq20_depth_path, sep="\t", usecols=[0, 1, 2], names=["contig", "pos", "cov"])
+        proband_mq20_depth_df = mq20_depth_df_all[[0, 1, 2]].rename(columns={0: "contig", 1: "pos", 2: "cov"})
         proband_interval_mq20_depth_cov_df = proband_mq20_depth_df[(proband_mq20_depth_df['contig'].astype(str) == str(interval_chr)) & (
                     proband_mq20_depth_df['pos'] >= padded_interval_pos) & (proband_mq20_depth_df['pos'] <= padded_interval_end)]
+        if proband_interval_mq20_depth_cov_df.empty:
+            print(f"Warning: No coverage data for {interval}, skipping.")
+            continue
         cov_y_uplimit = np.percentile(proband_interval_mq20_depth_cov_df['cov'], q=99) * 1.5
 
         # For each interval, Create a depth plot for proband, HG001, and HG002
         fig, axs = plt.subplots(nrows=4, ncols=1, figsize=(15, 8), height_ratios=[1, 1, 1, 0.1])
         for i in range(2, 5):
-            mq20_depth_df = pd.read_csv(mapq20_depth_path, sep="\t", usecols=[0, 1, i], names=["contig", "pos", "cov"])
-            mq0_depth_df = pd.read_csv(mapq0_depth_path, sep="\t", usecols=[0, 1, i], names=["contig", "pos", "cov"])
+            mq20_depth_df = mq20_depth_df_all[[0, 1, i]].rename(columns={0: "contig", 1: "pos", i: "cov"})
+            mq0_depth_df = mq0_depth_df_all[[0, 1, i]].rename(columns={0: "contig", 1: "pos", i: "cov"})
             # Get interval specific depth
             interval_mq20_depth_cov_df = mq20_depth_df[(mq20_depth_df['contig'].astype(str)==str(interval_chr))&(mq20_depth_df['pos']>=padded_interval_pos)&(mq20_depth_df['pos']<=padded_interval_end)]
             interval_mq0_depth_cov_df = mq0_depth_df[(mq0_depth_df['contig'].astype(str)==str(interval_chr))&(mq0_depth_df['pos']>=padded_interval_pos)&(mq0_depth_df['pos']<=padded_interval_end)]
@@ -203,7 +209,9 @@ def plot_cnv_depth(mapq20_depth_path, mapq0_depth_path, target_intervals, padded
         # Add text labels (p-arm and q-arm)
         axs[3].text(0, 0.8, 'p-arm', fontsize=10, ha='left', color='black')
         axs[3].text(chrom_size_dict[interval_chr], 0.8, 'q-arm', fontsize=10, ha='right', color='black')
-        axs[3].text(centromere_df[centromere_df['chr']==interval_chr]['start'].mean(), 0.8, 'centromere', fontsize=10, ha='center', color='red')
+        centromere_chr_df = centromere_df[centromere_df['chr']==interval_chr]
+        if not centromere_chr_df.empty:
+            axs[3].text(centromere_chr_df['start'].mean(), 0.8, 'centromere', fontsize=10, ha='center', color='red')
         axs[3].text((interval_pos+interval_end)/2, 1, f'Target', fontsize=10, ha='center', color='darkorange', fontweight='bold')
 
         # Add overall display description
@@ -212,10 +220,8 @@ def plot_cnv_depth(mapq20_depth_path, mapq0_depth_path, target_intervals, padded
         plt.suptitle(t=f'Read Depth Distribution Near {fmt_interval}', fontsize=16)
         plt.tight_layout()
         # Save the plot in the output directory
-        if output_dir.endswith('/'):
-            plt.savefig(fname=f"{output_dir}{sample_name}_MagDepth_{interval.replace(':','_')}.png", dpi=600)
-        else:
-            plt.savefig(fname=f"{output_dir}/{sample_name}_MagDepth_{interval.replace(':','_')}.png", dpi=600)
+        plt.savefig(fname=os.path.join(output_dir, f"{sample_name}_MagDepth_{interval.replace(':','_')}.png"), dpi=600)
+        plt.close(fig)
 
 
 # Initialize CNV interval list

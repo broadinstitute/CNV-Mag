@@ -11,7 +11,7 @@ struct RuntimeAttributes {
 workflow CNV_Mag {
     input{
         String sampleName
-        String dockerImage = "us.gcr.io/tag-public/cnv-mag:v0.2"
+        String dockerImage = "us.gcr.io/tag-public/cnv-mag:v0.5"
         File cramOrBamFile
         File cramOrBamIndexFile
         String refGenome = "hg38"
@@ -297,7 +297,7 @@ task MagSNP{
         File HG002FilteredVcfFile = "gs://fc-a76d0374-93e7-4c1a-8302-2a88079b480d/DRAGEN_4.3.6_NIST_default/NA24385_HG002_1_NVX/NA24385_HG002_1_NVX.hard-filtered.vcf.gz"
         File cnvBedFile
         RuntimeAttributes runtimeAttributes = {"disk_size_gb": 500, "cpu": 8, "mem_gb": 64, "maxRetries": 0, "preemptible": 0}
-        String args = "--pass_only" # Whether to include only PASS SNPs in the MagSNP plot
+        String args = "--pass_only" # Pass "--pass_only" to include only PASS SNPs; pass "" to include all SNPs
         Boolean use_ssd = true
     }
     command <<<
@@ -319,8 +319,8 @@ task MagSNP{
         echo "VCF files indexed."
 
         # Debugging: Print the command that will be executed
-        echo "PASS only option set to: ${PASSONLY}"
-        echo "python3 /BaseImage/CNV-Mag/MagSNP.py -v1 input/$(basename ~{hardFilteredVcfFile}) -v2 input/$(basename ~{HG001FilteredVcfFile}) -v3 input/$(basename ~{HG002FilteredVcfFile}) -b ~{cnvBedFile} -n1 ~{sampleName} -n2 HG001 -n3 HG002 -p ${PASSONLY} -o output"
+        echo "PASS only option set to: ~{args}"
+        echo "python3 /BaseImage/CNV-Mag/MagSNP.py -v1 input/$(basename ~{hardFilteredVcfFile}) -v2 input/$(basename ~{HG001FilteredVcfFile}) -v3 input/$(basename ~{HG002FilteredVcfFile}) -b ~{cnvBedFile} -n1 ~{sampleName} -n2 HG001 -n3 HG002 ~{args} -o output"
 
         # Run the coverage profile visualization script
         micromamba run -n CNV-Mag \
@@ -333,7 +333,7 @@ task MagSNP{
         -n2 HG001 \
         -n3 HG002  \
         -o output \
-        ${args}
+        ~{args}
 
     >>>
     output {
