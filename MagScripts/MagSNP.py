@@ -48,21 +48,17 @@ def annotate_af(vcf_path, interval, pass_only=True):
     interval_start = int(interval.split(":")[1].split("-")[0])
     interval_end = int(interval.split(":")[1].split("-")[1])
 
+    vcf = VariantFile(vcf_path)
+    sample_name = list(vcf.header.samples)[0]
     pos_af_list = []
-    with VariantFile(vcf_path) as vcf:
-        sample_name = list(vcf.header.samples)[0]
-        for rec in vcf.fetch(contig=interval_chr, start=interval_start, end=interval_end):
-            if pass_only:
-                if rec.filter.keys() == ['PASS'] and is_snp(rec):
-                    af = np.round(rec.samples[sample_name]["AF"][0], 2)
-                    pos_af_list.append((rec.pos, af))
-            else:
-                if is_snp(rec):
-                    af = np.round(rec.samples[sample_name]["AF"][0], 2)
-                    pos_af_list.append((rec.pos, af))
-
+    for rec in vcf.fetch(contig=interval_chr, start=interval_start, end=interval_end):
+        if is_snp(rec) and 'AF' in rec.samples[sample_name]:
+            if pass_only and rec.filter.keys() != ['PASS']:
+                continue
+            af = np.round(rec.samples[sample_name]["AF"][0], 2)
+            pos_af_list.append((rec.pos, af))
     if len(pos_af_list) == 0:
-        raise ValueError(f"No SNPs on {interval_chr} within {interval_start} and {interval_end}")
+        raise ValueError(f"No SNPs on {interval_chr} wihtin {interval_start} and {interval_end}")
 
     interval_pass_snp_df = pd.DataFrame(pos_af_list, columns=['POS', 'ALLELE_FRACTION'])
     return interval_pass_snp_df
